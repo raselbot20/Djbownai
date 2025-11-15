@@ -91,4 +91,4 @@ module.exports = {
       }, messageID);
     else return api.sendMessage(getLang("returnListClean"), threadID, messageID);
   }
-}l
+}

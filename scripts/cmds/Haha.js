@@ -1,12 +1,12 @@
 const fs = require("fs-extra");
 const path = require("path");
 const axios = require("axios");
-const jimp = require("jimp");
+const { createCanvas, loadImage, registerFont } = require("canvas");
 
 module.exports = {
   config: {
     name: "haha",
-    version: "1.2.0",
+    version: "5.0",
     hasPermssion: 0,
     credits: "Rasel Mahmud",
     description: "Funny pic with mentioned/replied user's profile, name on top, bigger and moved",
@@ -45,40 +45,52 @@ module.exports = {
       const cacheDir = path.join(__dirname, "cache");
       await fs.ensureDir(cacheDir);
 
-      // Background
+      // Load Background
       const bgPath = path.join(cacheDir, `haha_bg_${Date.now()}.jpg`);
       const bgData = (await axios.get(bgURL, { responseType: "arraybuffer" })).data;
       await fs.outputFile(bgPath, bgData);
-      const bg = await jimp.read(bgPath);
+      const bg = await loadImage(bgPath);
 
-      // User avatar
+      // Load Avatar
       const avatarData = (await axios.get(
         `https://graph.facebook.com/${userID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`,
         { responseType: "arraybuffer" }
       )).data;
       const avatarPath = path.join(cacheDir, `user_${Date.now()}.png`);
       await fs.outputFile(avatarPath, avatarData);
-      const userImg = await jimp.read(avatarPath);
-      userImg.circle();
+      const avatar = await loadImage(avatarPath);
 
-      // Composite: প্রোফাইল বড়, ডানদিকে 200px, উপরে ওঠা 100px, নামানো 50px + আরো 20px
+      // Create canvas
+      const canvas = createCanvas(bg.width, bg.height);
+      const ctx = canvas.getContext("2d");
+
+      // Draw background
+      ctx.drawImage(bg, 0, 0);
+
+      // Draw circular avatar
       const userSize = 200;
-      const xOffset = (bg.getWidth() / 2) + 200; // ডানদিকে 200px
-      const yOffset = (bg.getHeight() / 2) - 360; // উপরে উঠানো -380 + 20 নিচে
-      bg.composite(userImg.resize(userSize, userSize), xOffset, yOffset);
+      const xOffset = (bg.width / 2) + 200;
+      const yOffset = (bg.height / 2) - 360;
 
-      // Add username on top
-      const font = await jimp.loadFont(jimp.FONT_SANS_32_BLACK);
-      const text = `😂 Haha ${userName}!`;
-      const textX = 50;
-      const textY = 10;
-      bg.print(font, textX, textY, text);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(xOffset + userSize / 2, yOffset + userSize / 2, userSize / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(avatar, xOffset, yOffset, userSize, userSize);
+      ctx.restore();
+
+      // Add username text
+      ctx.fillStyle = "black";
+      ctx.font = "32px Sans";
+      ctx.fillText(`😂 Haha ${userName}!`, 50, 50);
 
       // Save final image
       const finalPath = path.join(cacheDir, `haha_${Date.now()}.png`);
-      await bg.writeAsync(finalPath);
+      const buffer = canvas.toBuffer("image/png");
+      await fs.outputFile(finalPath, buffer);
 
-      // Send message with ✅ reaction
+      // Send message
       api.sendMessage(
         { body: `😂 ${userName}!`, attachment: fs.createReadStream(finalPath) },
         threadID,

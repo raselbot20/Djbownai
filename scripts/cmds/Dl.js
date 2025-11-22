@@ -1,148 +1,71 @@
-const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
-
-const f = new Set();
-
-const a = (secret) => {
-  const m = Math.floor(Date.now() / 60000).toString();
-  const h = crypto.createHmac("sha256", secret);
-  h.update(m);
-  return h.digest("hex");
-};
-
-const b = (text) => {
-  const r = /(https?:\/\/[^\s]+)/g;
-  return text.match(r) || [];
-};
-
-const c = [
-  "tiktok.com",
-  "instagram.com",
-  "facebook.com",
-  "youtube.com",
-  "youtu.be",
-  "spotify.com",
-  "soundcloud.com",
-  "capcut.com",
-];
-
-const d = (url) => c.some((p) => url.includes(p));
-
-const e = (url) => {
-  if (url.includes("tiktok.com")) return "TikTok";
-  if (url.includes("instagram.com")) return "Instagram";
-  if (url.includes("facebook.com")) return "Facebook";
-  if (url.includes("youtube.com") || url.includes("youtu.be")) return "YouTube";
-  if (url.includes("spotify.com")) return "Spotify";
-  if (url.includes("soundcloud.com")) return "SoundCloud";
-  if (url.includes("capcut.com")) return "CapCut";
-  return "Unknown";
-};
-
-const i = async (api, event, url) => {
-  const tid = event.threadID;
-  const mid = event.messageID;
-
-  if (f.has(mid)) return;
-  f.add(mid);
-
-  try {
-    api.setMessageReaction("⏳", mid, () => {}, true);
-    const k = new Date().getUTCMinutes().toString();
-    const key = a(k);
-
-    const { data } = await axios.post(
-      "http://arydl.vercel.app/api/uplink",
-      { url },
-      {
-        headers: {
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json",
-        },
-        timeout: 30000,
-      }
-    );
-
-    if (data.status !== "success" || !data.data) {
-      api.setMessageReaction("❌", mid, () => {}, true);
-      return api.sendMessage(
-        "❌ Failed to download: " + (data.message || "Unknown error"),
-        tid,
-        mid
-      );
-    }
-
-    const dl = data.data.data;
-    let u, n;
-
-    if (dl.nowm) u = dl.nowm;
-    else if (dl.audio) u = dl.audio;
-    else if (dl.download && dl.download.length > 0) u = dl.download[0].url;
-    else if (dl.media && dl.media.length > 0) u = dl.media[0].url;
-    else return api.sendMessage("⚠️ No downloadable content found.", tid, mid);
-
-    n = `${dl.title || "media"}.mp4`;
-    const p = path.join(__dirname, "cache", n.replace(/[^a-zA-Z0-9.-]/g, "_"));
-    if (!fs.existsSync(path.join(__dirname, "cache")))
-      fs.mkdirSync(path.join(__dirname, "cache"), { recursive: true });
-
-    const res = await axios({ method: "GET", url: u, responseType: "stream", timeout: 60000 });
-    const w = fs.createWriteStream(p);
-    res.data.pipe(w);
-
-    w.on("finish", () => {
-      api.setMessageReaction("✅", mid, () => {}, true);
-      const txt = `✅ Download Complete!\n\n📱 Platform: ${e(url)}`;
-      api.sendMessage({ body: txt, attachment: fs.createReadStream(p) }, tid, () => {
-        try { fs.unlinkSync(p); } catch(e){}
-      }, mid);
-    });
-
-    w.on("error", () => {
-      api.setMessageReaction("❌", mid, () => {}, true);
-      api.sendMessage("❌ Failed to save file.", tid, mid);
-      try { fs.unlinkSync(p); } catch(e){}
-    });
-
-  } catch (err) {
-    api.setMessageReaction("❌", event.messageID, () => {}, true);
-    let msg = "❌ Download failed: ";
-    if (err.response) msg += err.response.data?.message || `HTTP ${err.response.status}`;
-    else if (err.code === "ECONNREFUSED") msg += "Cannot connect to server.";
-    else if (err.code === "ETIMEDOUT") msg += "Request timed out.";
-    else msg += err.message;
-    api.sendMessage(msg, event.threadID, event.messageID);
-  }
-};
-
 module.exports = {
   config: {
-    name: "dl",
-    version: "3.0",
-    author: "Aryan Chauhan",
-    countDown: 5,
-    role: 0,
-    shortDescription: "Download media",
-    longDescription: "Download video/audio from supported platforms with only basic info.",
-    category: "media",
-    guide: { en: "{pn} <url> or reply to a message containing a URL." },
+    name: "autodl",
+    version: "0.0.3",
+    hasPermssion: 0,
+    credits: "Rasel Mahmud",
+    description: "Auto video downloader",
+    commandCategory: "user",
+    usages: "",
+    cooldowns: 5,
   },
 
-  onStart: async function ({ api, event, args }) {
-    let u = args[0];
-    if (!u && event.messageReply?.body) u = b(event.messageReply.body).find((x) => d(x));
-    if (!u) return;
-    await i(api, event, u);
-  },
+  onStart: async function () {},
 
   onChat: async function ({ api, event }) {
-    const botID = api.getCurrentUserID();
-    if (event.senderID === botID) return;
-    let u = b(event.body || "").find((x) => d(x));
-    if (!u && event.messageReply?.body) u = b(event.messageReply.body).find((x) => d(x));
-    if (!u) return;
-    await i(api, event, u);
+    const axios = require("axios");
+    const fs = require("fs-extra");
+    const { alldown } = require("shaon-videos-downloader");
+
+    const message = event.body || "";
+    const body = message.toLowerCase();
+
+    // auto trigger only if starts with https://
+    if (!body.startsWith("https://")) return;
+
+    try {
+      api.setMessageReaction("⏳", event.messageID, () => {}, true);
+
+      const data = await alldown(message);
+      const url = data.url;
+
+      api.setMessageReaction("✅", event.messageID, () => {}, true);
+
+      const video = (
+        await axios.get(url, { responseType: "arraybuffer" })
+      ).data;
+
+      const path = __dirname + "/cache/autodl.mp4";
+      fs.writeFileSync(path, Buffer.from(video, "utf-8"));
+
+      // platform detect → simple extractor
+      const getPlatform = (link) => {
+        try {
+          const host = new URL(link).hostname.replace("www.", "");
+          return host.toUpperCase();
+        } catch {
+          return "UNKNOWN";
+        }
+      };
+
+      const platform = getPlatform(message);
+
+      return api.sendMessage(
+        {
+          body:
+            `✅ Download Complete!\n\n📱 Platform: ${platform}`,
+          attachment: fs.createReadStream(path),
+        },
+        event.threadID,
+        event.messageID
+      );
+    } catch (err) {
+      console.log(err);
+      api.sendMessage(
+        "❌ Error while downloading the video!",
+        event.threadID,
+        event.messageID
+      );
+    }
   },
 };

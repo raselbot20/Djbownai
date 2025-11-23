@@ -7,7 +7,7 @@ module.exports = {
     hasPermssion: 0,
     credits: "Rasel Mahmud",
     description: "Accept/Delete Facebook friend requests with list support",
-    commandCategory: "bot id",
+    commandCategory: "Utility",
     usages: "acp | acp list | add <number/all> | del <number/all>",
     cooldowns: 0,
   },

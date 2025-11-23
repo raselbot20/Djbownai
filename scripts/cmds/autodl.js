@@ -10,7 +10,7 @@ module.exports = {
     hasPermssion: 0,
     author: 'Rasel Mahmud',
     description: 'Auto download video(s) with progress from given URL(s).',
-    commandCategory: 'user',
+    commandCategory: 'media',
     usages: '',
     cooldowns: 5
   },

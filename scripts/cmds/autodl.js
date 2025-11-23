@@ -6,82 +6,74 @@ const { alldown } = require('shaon-videos-downloader');
 module.exports = {
   config: {
     name: 'autodl',
-    version: '1.4.0',
+    version: '3.0.0',
     hasPermssion: 0,
     author: 'Rasel Mahmud',
-    description: 'Auto download video(s) with progress from given URL(s).',
+    description: 'Auto download videos when someone sends any link.',
     commandCategory: 'media',
     usages: '',
-    cooldowns: 5
+    cooldowns: 0
   },
 
-  onStart: async function () {},
+  onStart: async function ({ api, event }) {
+    const text = event.body || "";
 
-  onChat: async function ({ api, event }) {
-    const text = event.body || '';
-    const urls = (text.match(/https?:\/\/[^\s]+/g) || []).filter(u => u.startsWith('https://'));
+    // 🔍 সব লিঙ্ক বের করা
+    const urls = (text.match(/https?:\/\/[^\s]+/g) || [])
+      .filter(u => u.startsWith("http"));
+
     if (urls.length === 0) return;
 
-    const cacheDir = path.join(__dirname, 'cache');
+    const cacheDir = path.join(__dirname, "cache");
     if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
 
     for (const link of urls) {
       try {
         // Start reaction
-        api.setMessageReaction('⏳', event.messageID, () => {}, true);
+        api.setMessageReaction("⏳", event.messageID, () => {}, true);
 
+        // Download info
         const data = await alldown(link);
-        if (!data || !data.url) throw new Error('No downloadable URL found');
+        if (!data?.url) throw new Error("NO_URL");
 
-        const url = data.url;
-        const safeName = (data.title || 'video').replace(/[^a-zA-Z0-9.-]/g, '_');
-        const filePath = path.join(cacheDir, `${safeName}_${Date.now()}.mp4`);
+        const filePath = path.join(cacheDir, `auto_${Date.now()}.mp4`);
 
-        // Download video with progress
-        const response = await axios({ method: 'GET', url, responseType: 'stream' });
-        const totalSize = parseInt(response.headers['content-length']) || 0;
-        let downloaded = 0;
-        let lastPercent = 0;
-
-        const writer = fs.createWriteStream(filePath);
-
-        // Handle progress
-        response.data.on('data', (chunk) => {
-          downloaded += chunk.length;
-          if (totalSize) {
-            const percent = Math.floor((downloaded / totalSize) * 100);
-            if (percent - lastPercent >= 5) {
-              api.setMessageReaction('⏳', event.messageID, () => {}, true);
-              lastPercent = percent;
-            }
-          }
+        // Download file
+        const stream = await axios({
+          url: data.url,
+          method: "GET",
+          responseType: "stream"
         });
 
-        // Wait for download to finish before sending
         await new Promise((resolve, reject) => {
-          writer.on('finish', resolve);
-          writer.on('error', reject);
-          response.data.pipe(writer);
+          const writer = fs.createWriteStream(filePath);
+          writer.on("finish", resolve);
+          writer.on("error", reject);
+          stream.data.pipe(writer);
         });
 
-        // ✅ Reaction
-        api.setMessageReaction('✅', event.messageID, () => {}, true);
+        // Success reaction
+        api.setMessageReaction("✅", event.messageID, () => {}, true);
 
-        const platform = (() => {
-          try { return new URL(link).hostname.replace('www.', '').toUpperCase(); } 
-          catch { return 'UNKNOWN'; }
-        })();
-
-        // Send video
-        api.sendMessage({
-          body: `✅ Download Complete!\n\n📱 Platform: ${platform}\n🌐 URL: ${link}`,
-          attachment: fs.createReadStream(filePath)
-        }, event.threadID, event.messageID);
+        // Send file
+        api.sendMessage(
+          {
+            body: `✅ Download Complete!\n🔗 URL: ${link}`,
+            attachment: fs.createReadStream(filePath)
+          },
+          event.threadID,
+          () => {
+            try { fs.unlinkSync(filePath); } catch {};
+          }
+        );
 
       } catch (err) {
-        // Only ❌ reaction on failure, no message
-        api.setMessageReaction('❌', event.messageID, () => {}, true);
+        // Error reaction only
+        api.setMessageReaction("❌", event.messageID, () => {}, true);
       }
     }
-  }
+  },
+
+  onReply() {},
+  onLoad() {}
 };

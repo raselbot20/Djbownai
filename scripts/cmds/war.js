@@ -5,7 +5,7 @@ module.exports = {
     version: "1.0",
     author: "nexo_here",
     role: 2,
-    category: "admin",
+    category: "owner",
     guide: {
       vi: "Not Available",
       en: "chud @(mention)"

@@ -10,7 +10,7 @@ module.exports = {
         role: 0,
         shortDescription: "Generate an AI prompt ",
         longDescription: "Generates a Midjourney prompt based on text or image input.",
-        category: "𝗔𝗜",
+        category: "utility/photo",
         guide: {
             en: "   {pn} <text>: Generate a prompt based on the text."
                 + "\n   {pn} (reply to an image): Generate a prompt based on the replied image."

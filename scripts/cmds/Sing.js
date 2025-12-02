@@ -1,133 +1,152 @@
 const axios = require("axios");
 const fs = require("fs");
-const ytSearch = require("yt-search");
 const path = require("path");
 
-const CACHE_DIR = path.join(__dirname, "cache");
-const MAX_FILE_BYTES = 120 * 1024 * 1024;
-
-function sanitizeFilename(name) {
-  return name.replace(/[\\\/:*?"<>|]/g, '').trim() || `${Date.now()}`;
-}
+const baseApiUrl = async () => {
+  const base = await axios.get(
+    `https://raw.githubusercontent.com/rummmmna21/rx-api/main/baseApiUrl.json?fbclid=IwY2xjawN1LPlleHRuA2FlbQIxMQABHrS3c9PLQEj8--h_gtg-Dn1chJA1PuOg39Bl3_7volMObgoBTusScj7atlSv_aem_Od2q66hLLFpjGWb1_EWUhw`
+  );
+  return base.data.api;
+};
 
 module.exports = {
   config: {
     name: "sing",
-    version: "1.4",
-    author: "Rasel Mahmud",
-    countDown: 5,
+    version: "2.2.0",
+    author: "RX api",
     role: 0,
-    shortDescription: { en: "Search & download YouTube songs" },
-    longDescription: { en: "Search songs and download in MP3 format using Shizu SaveTube API." },
     category: "media",
-    guide: { en: "{pn} <song name>\n\nExample:\n{pn} tum hi ho" }
+    shortDescription: "Download audio from YouTube",
+    longDescription: "Search YouTube videos and download audio (MP3 format).",
+    guide: "{pn} [song name | YouTube link]\n\nExample:\n{pn} chipi chipi chapa chapa"
   },
 
-  onStart: async function ({ api, args, event }) {
-    if (!args[0])
-      return api.sendMessage("❌ Please provide a song name.", event.threadID, event.messageID);
+  onStart: async function ({ api, event, args }) {
+    const checkurl = /^(?:https?:\/\/)?(?:m\.|www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))((\w|-){11})(?:\S+)?$/;
+    const input = args.join(" ");
 
-    api.setMessageReaction("🎶", event.messageID, () => {}, true);
+    if (!input)
+      return api.sendMessage("❌ Please provide a song name or YouTube link.", event.threadID, event.messageID);
+
+    const isYtLink = checkurl.test(input);
+    const tmpFolder = path.join(__dirname, "tmp");
+    if (!fs.existsSync(tmpFolder)) fs.mkdirSync(tmpFolder, { recursive: true });
+
+    // direct YouTube link
+    if (isYtLink) {
+      const match = input.match(checkurl);
+      const videoID = match ? match[1] : null;
+
+      try {
+        const { data } = await axios.get(`${await baseApiUrl()}/ytDl3?link=${videoID}&format=mp3`);
+        const { title, downloadLink } = data;
+
+        const filePath = path.join(tmpFolder, `${Date.now()}_audio.mp3`);
+        const res = await axios.get(downloadLink, { responseType: "arraybuffer" });
+        fs.writeFileSync(filePath, Buffer.from(res.data));
+
+        return api.sendMessage(
+          { body: `🎵 ${title}`, attachment: fs.createReadStream(filePath) },
+          event.threadID,
+          () => fs.unlinkSync(filePath),
+          event.messageID
+        );
+      } catch (err) {
+        console.error(err);
+        return api.sendMessage("❌ Failed to fetch audio.", event.threadID, event.messageID);
+      }
+    }
+
+    // keyword search
+    let keyWord = input.includes("?feature=share")
+      ? input.replace("?feature=share", "")
+      : input;
+    const maxResults = 6;
 
     try {
-      const query = args.join(" ");
-      const searchResult = await ytSearch(query);
-      const videos = (searchResult?.videos || []).slice(0, 6);
+      const res = await axios.get(`${await baseApiUrl()}/ytFullSearch?songName=${encodeURIComponent(keyWord)}`);
+      const results = res.data.slice(0, maxResults);
 
-      if (!videos.length)
-        return api.sendMessage("❌ No results found on YouTube.", event.threadID, event.messageID);
+      if (!results.length)
+        return api.sendMessage(`⭕ No results found for: ${keyWord}`, event.threadID, event.messageID);
 
-      if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+      let msg = "🎧 Choose a song below (reply with number 1–6):\n\n";
+      const thumbs = [];
 
-      const attachments = [];
-      let msg = `🎵 Top results for: "${query}"\n\n`;
-      for (let i = 0; i < videos.length; i++) {
-        const v = videos[i];
-        msg += `${i + 1}. ${v.title} (${v.timestamp})\n👤 ${v.author.name}\n\n`;
+      results.forEach((info, i) => {
+        msg += `${i + 1}. ${info.title}\n⏱️ ${info.time}\n📺 ${info.channel.name}\n\n`;
+        thumbs.push(loadStream(info.thumbnail));
+      });
 
-        try {
-          const thumbRes = await axios.get(v.thumbnail, { responseType: "arraybuffer", timeout: 8000 });
-          const thumbPath = path.join(CACHE_DIR, `thumb_${Date.now()}_${i}.jpg`);
-          fs.writeFileSync(thumbPath, Buffer.from(thumbRes.data));
-          attachments.push(fs.createReadStream(thumbPath));
-        } catch (e) {}
-      }
+      const allThumbs = await Promise.all(thumbs);
 
-      msg += "👉 Reply with a number (1-6) to download that song.";
-
-      api.sendMessage({ body: msg, attachment: attachments }, event.threadID, (err, info) => {
-        if (err) return;
-
-        global.GoatBot.onReply.set(info.messageID, {
-          commandName: "sing",
-          type: "chooseSong",
-          messageID: info.messageID,
-          videos,
-          author: event.senderID
-        });
-
-        attachments.forEach(a => { try { if (a.path) fs.unlinkSync(a.path); } catch {} });
-      }, event.messageID);
+      return api.sendMessage(
+        {
+          body: msg + "🎶 Reply with the number to download the song.",
+          attachment: allThumbs
+        },
+        event.threadID,
+        (err, info) => {
+          global.GoatBot.onReply.set(info.messageID, {
+            commandName: "sing",
+            author: event.senderID,
+            results,
+            messageID: info.messageID // store messageID to unsend later
+          });
+        },
+        event.messageID
+      );
     } catch (err) {
-      console.error("❌ Error in sing onStart:", err);
-      api.sendMessage("❌ Error while searching songs.", event.threadID, event.messageID);
+      console.error(err);
+      return api.sendMessage("❌ Error searching for songs.", event.threadID, event.messageID);
     }
   },
 
   onReply: async function ({ api, event, Reply }) {
-    if (event.senderID !== Reply.author)
-      return api.sendMessage("❌ You didn't request this search.", event.threadID, event.messageID);
+    if (event.senderID !== Reply.author) return;
+    const { results, messageID } = Reply;
+    const choice = parseInt(event.body);
 
-    const choice = parseInt((event.body || "").trim());
-    if (isNaN(choice) || choice < 1 || choice > Reply.videos.length)
-      return api.sendMessage("❌ Please reply with a valid number between 1-6.", event.threadID, event.messageID);
+    if (isNaN(choice) || choice < 1 || choice > results.length)
+      return api.sendMessage("❌ Please reply with a valid number.", event.threadID, event.messageID);
 
-    const video = Reply.videos[choice - 1];
-    api.setMessageReaction("⏳", event.messageID, () => {}, true);
+    const selected = results[choice - 1];
+    const tmpFolder = path.join(__dirname, "tmp");
+    if (!fs.existsSync(tmpFolder)) fs.mkdirSync(tmpFolder, { recursive: true });
 
     try {
-      const apiUrl = `https://shizuapi.onrender.com/api/savetube?url=${encodeURIComponent(video.url)}&format=mp3`;
-      const { data } = await axios.get(apiUrl, { timeout: 20000 });
+      // unsend the "Choose a song" message
+      api.unsendMessage(messageID);
 
-      if (!data?.status || !data?.result?.download)
-        return api.sendMessage("❌ Failed to get download link from API.", event.threadID, event.messageID);
+      const { data } = await axios.get(`${await baseApiUrl()}/ytDl3?link=${selected.id}&format=mp3`);
+      const { title, quality, downloadLink } = data;
 
-      const dlUrl = data.result.download;
-      const fileName = sanitizeFilename(data.result.title || video.title) + ".mp3";
-      const filePath = path.join(CACHE_DIR, fileName);
+      const filePath = path.join(tmpFolder, `${Date.now()}_audio.mp3`);
+      const res = await axios.get(downloadLink, { responseType: "arraybuffer" });
+      fs.writeFileSync(filePath, Buffer.from(res.data));
 
-      try {
-        const head = await axios.head(dlUrl, { timeout: 10000 });
-        const size = parseInt(head.headers["content-length"] || "0", 10);
-        if (size > MAX_FILE_BYTES)
-          return api.sendMessage(`❌ File too large (${(size / 1024 / 1024).toFixed(2)} MB).`, event.threadID, event.messageID);
-      } catch (e) {}
-
-      const dlStream = await axios.get(dlUrl, { responseType: "stream" });
-      const writer = fs.createWriteStream(filePath);
-      dlStream.data.pipe(writer);
-
-      await new Promise((res, rej) => {
-        writer.on("finish", res);
-        writer.on("error", rej);
-      });
-
-      if (Reply.messageID) {
-        try { api.unsendMessage(Reply.messageID); } catch (e) {}
-      }
-
-      await api.sendMessage({
-        body: `🎶 Title: ${data.result.title}\n🕒 Duration: ${data.result.duration}s\n🎧 Quality: ${data.result.quality}kbps\n🔗 YouTube: ${video.url}`,
-        attachment: fs.createReadStream(filePath)
-      }, event.threadID, () => {
-        try { fs.unlinkSync(filePath); } catch {}
-      }, event.messageID);
-
-      api.setMessageReaction("✅", event.messageID, () => {}, true);
+      return api.sendMessage(
+        {
+          body: `🎶 Now Playing: ${title}\n📦 Quality: ${quality}`,
+          attachment: fs.createReadStream(filePath)
+        },
+        event.threadID,
+        () => fs.unlinkSync(filePath),
+        event.messageID
+      );
     } catch (err) {
-      console.error("❌ Error in sing onReply:", err);
-      api.setMessageReaction("❌", event.messageID, () => {}, true);
-      api.sendMessage("❌ Failed to download the song. Please try another.", event.threadID, event.messageID);
+      console.error(err);
+      return api.sendMessage("⭕ Error downloading audio (may exceed 26MB).", event.threadID, event.messageID);
     }
   }
 };
+
+// Helper to stream thumbnails
+async function loadStream(url) {
+  try {
+    const res = await axios.get(url, { responseType: "stream" });
+    return res.data;
+  } catch {
+    return null;
+  }
+}

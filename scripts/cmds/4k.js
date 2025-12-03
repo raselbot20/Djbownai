@@ -1,70 +1,83 @@
-const axios = require('axios');
-const fs = require('fs');
+const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 
-const xyz = "ArYANAHMEDRUDRO";
+const CACHE_DIR = path.join(__dirname, "cache");
 
 module.exports = {
   config: {
     name: "4k",
-    version: "1.0.0",
+    aliases: ["upscale"],
+    version: "1.6",
+    author: "Aryan Chauhan",
+    countDown: 5,
     role: 0,
-    credits: "Rasel Mahmud",
-    description: "Enhance Image into 4K quality",
-    category: "IMAGE",
-    cooldown: 5
+    shortDescription: { en: "Upscale image to 4K" },
+    longDescription: { en: "Send an image URL or reply to an image, bot will upscale it using Ary API from GitHub." },
+    category: "media",
+    guide: { en: "{pn} <image URL>\n\nOr reply to an image with {pn}" }
   },
 
-  onStart: async ({ api, event, args }) => {
-    const tempImage = __dirname + "/cache/4k_enhanced.jpg";
-    const { threadID, messageID } = event;
+  onStart: function ({ api, args, event }) {
+    if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
 
-    // Get Image URL from reply or args
-    const imageUrl = event.messageReply
-      ? event.messageReply.attachments?.[0]?.url
-      : args.join(" ");
+    let imageUrl = args[0];
+
+    if (!imageUrl && event.messageReply && event.messageReply.attachments?.length > 0) {
+      imageUrl = event.messageReply.attachments[0].url;
+    }
 
     if (!imageUrl) {
-      return api.sendMessage(
-        "👉 Please reply to an image or give an image URL!",
-        threadID,
-        messageID
-      );
+      return api.sendMessage("❌ Reply to an image or send image URL.", event.threadID, event.messageID);
     }
 
-    try {
-      const wait = await api.sendMessage("⏳ 𝐏𝐥𝐞𝐚𝐬𝐞 𝐖𝐚𝐢𝐭 𝐁𝐚𝐛𝐲... 😘", threadID);
+    api.setMessageReaction("⏳", event.messageID, () => {}, true);
 
-      const apiUrl =
-        `https://aryan-xyz-upscale-api-phi.vercel.app/api/upscale-image?imageUrl=${encodeURIComponent(imageUrl)}&apikey=${xyz}`;
+axios.get("https://raw.githubusercontent.com/arychauhann/APIs/refs/heads/main/api.json")
+      .then(function (response) {
+        const baseApi = response.data?.ary;
+        if (!baseApi) throw new Error("ARY API not found in GitHub JSON");
 
-      const res = await axios.get(apiUrl);
-      const enhancedUrl = res.data?.resultImageUrl;
+        const apiUrl = `${baseApi}/api/videoconverter?url=${encodeURIComponent(imageUrl)}&scale=2`;
+        return axios.get(apiUrl, { timeout: 30000 });
+      })
 
-      if (!enhancedUrl) {
-        throw new Error("API returned no image.");
-      }
+      .then(function (res) {
+        const upscaledUrl = res.data?.result;
+        if (!upscaledUrl) throw new Error("No 'result' field from ARY API");
 
-      const enhancedBuffer = (
-        await axios.get(enhancedUrl, { responseType: "arraybuffer" })
-      ).data;
+        return axios.get(upscaledUrl, { responseType: "stream" });
+      })
 
-      fs.writeFileSync(tempImage, Buffer.from(enhancedBuffer));
+      .then(function (fileRes) {
+        const filename = `4k_${Date.now()}.jpg`;
+        const filepath = path.join(CACHE_DIR, filename);
+        const writer = fs.createWriteStream(filepath);
 
-      api.sendMessage(
-        {
-          body: "✅ 𝐈𝐦𝐚𝐠𝐞 𝟒𝐊 𝐄𝐧𝐡𝐚𝐧𝐜𝐞𝐝 𝐒𝐮𝐜𝐜𝐞𝐬𝐬𝐟𝐮𝐥𝐥𝐲!",
-          attachment: fs.createReadStream(tempImage)
-        },
-        threadID,
-        () => fs.unlinkSync(tempImage),
-        messageID
-      );
+        fileRes.data.pipe(writer);
 
-      api.unsendMessage(wait.messageID);
+        writer.on("finish", function () {
+          api.sendMessage({
+            body: "✅ Here is your 4K upscaled image:",
+            attachment: fs.createReadStream(filepath)
+          }, event.threadID, function () {
+            try { fs.unlinkSync(filepath); } catch {}
+          }, event.messageID);
 
-    } catch (e) {
-      api.sendMessage("❌ Error! (Maybe API Down?)", threadID, messageID);
-      console.log(e);
-    }
+          api.setMessageReaction("✅", event.messageID, () => {}, true);
+        });
+
+        writer.on("error", function (err) {
+          console.error("File error:", err.message);
+          api.sendMessage("❌ Could not save image.", event.threadID, event.messageID);
+          api.setMessageReaction("❌", event.messageID, () => {}, true);
+        });
+      })
+
+      .catch(function (err) {
+        console.error("Upscale error:", err.message);
+        api.sendMessage("❌ Failed to upscale the image.\n" + err.message, event.threadID, event.messageID);
+        api.setMessageReaction("❌", event.messageID, () => {}, true);
+      });
   }
 };

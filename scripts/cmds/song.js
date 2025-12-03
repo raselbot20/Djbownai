@@ -8,108 +8,98 @@ const CACHE_DIR = path.join(__dirname, "cache");
 module.exports = {
   config: {
     name: "song",
-    version: "2.0",
-    author: "Modified by ChatGPT",
+    version: "3.0",
+    author: "Rasel Mahmud",
     countDown: 5,
     role: 0,
-    shortDescription: { en: "Download any song instantly" },
-    longDescription: { en: "Search & download song directly without list. Includes fallback APIs." },
+    shortDescription: { en: "Instant song downloader (no error mode)" },
+    longDescription: { en: "Downloads song using fallback system, tries 1-6 videos. Never shows error." },
     category: "media",
     guide: { en: "{pn} <song name>" }
   },
 
   onStart: async function ({ api, args, event }) {
-    if (!args[0])
-      return api.sendMessage("❌ Please provide a song name.", event.threadID, event.messageID);
+    if (!args[0]) return;
+
+    api.setMessageReaction("🎶", event.messageID, () => {}, true);
 
     const query = args.join(" ");
-    api.setMessageReaction("🎶", event.messageID, () => {}, true);
 
     try {
       if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
 
-      // 🔎 FIRST: Search YouTube
+      // 🔎 YouTube search
       const search = await ytSearch(query);
-      if (!search.videos || search.videos.length === 0) {
-        api.setMessageReaction("❌", event.messageID, () => {}, true);
-        return api.sendMessage("❌ No song found on YouTube.", event.threadID);
-      }
+      const vids = search.videos.slice(0, 6);
+      if (!vids.length) return;
 
-      const video = search.videos[0]; // pick first result
+      // API fallback list
+      async function tryAPIs(video) {
+        const APIs = [
+          async () => {
+            try {
+              const a = await axios.get(
+                "https://raw.githubusercontent.com/arychauhann/APIs/refs/heads/main/api.json"
+              );
+              const base = a.data.ary;
+              return await axios.get(`${base}/api/ytmp3?url=${encodeURIComponent(video.url)}&format=mp3`);
+            } catch { return null; }
+          },
+          async () => {
+            try {
+              return await axios.get(`https://api.shinobu.host/ytmp3?url=${encodeURIComponent(video.url)}`);
+            } catch { return null; }
+          },
+          async () => {
+            try {
+              return await axios.get(`https://widipe.com/download/ytmp3?url=${encodeURIComponent(video.url)}`);
+            } catch { return null; }
+          }
+        ];
 
-      // API Fallback list
-      const APIs = [
-        async () => {
-          // Ary / Shizu API
-          try {
-            const apiConfig = await axios.get(
-              "https://raw.githubusercontent.com/arychauhann/APIs/refs/heads/main/api.json"
-            );
-            const base = apiConfig.data.ary;
-            const url = `${base}/api/ytmp3?url=${encodeURIComponent(video.url)}&format=mp3`;
-            return await axios.get(url);
-          } catch {
-            return null;
-          }
-        },
-        async () => {
-          // Second API (Backup)
-          try {
-            const url = `https://api.shinobu.host/ytmp3?url=${encodeURIComponent(video.url)}`;
-            return await axios.get(url);
-          } catch {
-            return null;
-          }
-        },
-        async () => {
-          // Third API (Backup)
-          try {
-            const url = `https://widipe.com/download/ytmp3?url=${encodeURIComponent(video.url)}`;
-            return await axios.get(url);
-          } catch {
-            return null;
-          }
+        // Try all APIs for one video
+        for (let apiCall of APIs) {
+          const res = await apiCall();
+          if (!res || !res.data) continue;
+
+          const d = res.data;
+
+          const link =
+            d.directLink ||
+            d.url ||
+            d.download_url ||
+            d.result?.download_url;
+
+          if (link) return { link, title: video.title, author: video.author.name, duration: video.timestamp };
         }
-      ];
 
-      let data = null;
-
-      // 🔄 Try all APIs until one works
-      for (let apiCall of APIs) {
-        let res = await apiCall();
-        if (res && res.data && (res.data.directLink || res.data.result?.download_url)) {
-          data = res.data;
-          break;
-        }
+        return null;
       }
 
-      if (!data) {
-        api.setMessageReaction("❌", event.messageID, () => {}, true);
-        return api.sendMessage("❌ All servers failed to fetch the song.", event.threadID);
+      // Try each of the 1–6 videos
+      let finalSong = null;
+
+      for (let vid of vids) {
+        finalSong = await tryAPIs(vid);
+        if (finalSong) break; // found working one
       }
 
-      // Find download link
-      const link =
-        data.directLink ||
-        data.result?.download_url ||
-        data.download_url ||
-        data.url;
-
-      if (!link) {
-        return api.sendMessage("❌ Failed to fetch MP3 link.", event.threadID);
+      // Nothing worked → but NO ERROR should show
+      if (!finalSong) {
+        return api.sendMessage("❌ Song unavailable right now.", event.threadID);
       }
 
-      // 📥 Download MP3
+      // Download MP3
       const filePath = path.join(CACHE_DIR, `${Date.now()}.mp3`);
-      const dl = await axios.get(link, { responseType: "stream" });
 
+      const dl = await axios.get(finalSong.link, { responseType: "stream" });
       const writer = fs.createWriteStream(filePath);
       dl.data.pipe(writer);
 
       writer.on("finish", () => {
         api.sendMessage(
           {
-            body: `🎵 *${video.title}*\n🎤 ${video.author.name}\n⏳ ${video.timestamp}`,
+            body: `🎵 *${finalSong.title}*\n👤 ${finalSong.author}\n⏳ ${finalSong.duration}`,
             attachment: fs.createReadStream(filePath)
           },
           event.threadID,
@@ -121,15 +111,10 @@ module.exports = {
         api.setMessageReaction("✅", event.messageID, () => {}, true);
       });
 
-      writer.on("error", () => {
-        api.sendMessage("❌ Download error.", event.threadID);
-        api.setMessageReaction("❌", event.messageID, () => {}, true);
-      });
+      writer.on("error", () => {});
 
-    } catch (err) {
-      console.log("Song command error:", err);
-      api.sendMessage("❌ Something went wrong.", event.threadID);
-      api.setMessageReaction("❌", event.messageID, () => {}, true);
+    } catch (e) {
+      // NO ERROR MESSAGE — Silent fail
     }
   }
 };

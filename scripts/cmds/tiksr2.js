@@ -29,6 +29,9 @@ module.exports.onStart = async function ({ api, args, event }) {
     let search = args.join(" ");
     let searchLimit = 30;
 
+    // REACTION: Processing
+    api.setMessageReaction("⏳", event.messageID, () => {}, true);
+
     const match = search.match(/^(.+)\s*-\s*(\d+)$/);
     if (match) {
         search = match[1].trim();
@@ -48,15 +51,24 @@ module.exports.onStart = async function ({ api, args, event }) {
             responseType: "stream",
         });
 
-        let infoMessage = `🎥 Video Title: ${videoData.title}\n`;
-        infoMessage += `🔗 Video URL: ${videoData.video}\n`;
+        let infoMessage = `╔═══❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═══╗
+✅🔗 Video URL: ${videoData.video}
+╚═══════════════╝\n`;
 
         api.sendMessage(
             { body: infoMessage, attachment: stream.data },
             event.threadID,
         );
+
+        // REACTION: Success
+        api.setMessageReaction("✅", event.messageID, () => {}, true);
+
     } catch (error) {
         console.error(error);
+
+        // REACTION: Error
+        api.setMessageReaction("❌", event.messageID, () => {}, true);
+
         api.sendMessage(
             "An error occurred while downloading the TikTok video.",
             event.threadID,

@@ -4,7 +4,7 @@ module.exports = {
  author: "Rasel Mahmud",
  role: 2, 
  shortDescription: "Make the bot leave the group",
- category: "admin",
+ category: "owner",
  guide: "{pn}"
  },
 

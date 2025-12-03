@@ -10,7 +10,7 @@ module.exports = {
     role: 0,
     shortDescription: "Buttslap image",
     longDescription: "Buttslap image with different target options",
-    category: "funny",
+    category: "fun",
     guide: {
       en: "   {pn} @tag/uid/reply/link"
     }

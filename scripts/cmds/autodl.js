@@ -23,6 +23,23 @@ function b(q) {
   return Object.values(a).some(r => r.test(q));
 }
 
+function getPlatform(url) {
+  if (a.y.test(url)) return "YouTube";
+  if (a.i.test(url)) return "Instagram";
+  if (a.t.test(url)) return "TikTok";
+  if (a.f.test(url)) return "Facebook";
+  if (a.x.test(url)) return "Twitter";
+  if (a.d.test(url)) return "Dailymotion";
+  if (a.v.test(url)) return "Vimeo";
+  if (a.p.test(url)) return "Pinterest";
+  if (a.m.test(url)) return "Imgur";
+  if (a.s.test(url)) return "SoundCloud";
+  if (a.o.test(url)) return "Spotify";
+  if (a.e.test(url)) return "TED";
+  if (a.u.test(url)) return "Tumblr";
+  return "Other";
+}
+
 async function c(q, api, t, m) {
   api.setMessageReaction("⏳", m, () => {}, true);
 
@@ -59,6 +76,7 @@ async function c(q, api, t, m) {
 
   let n = [];
   let o2 = "";
+  const platform = getPlatform(q);
 
   if (d) {
     if (!l) {
@@ -67,7 +85,7 @@ async function c(q, api, t, m) {
       return;
     }
     n.push({ u: l, t: "a" });
-    o2 = `╔═══❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═══╗\n\t✅ Audio Downloaded!\n\t📥 Platform: Spotify\n╚═══════════════╝`;
+    o2 = `╔═══❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═══╗\n\t✅ Audio Downloaded!\n\t📥 Platform: ${platform}\n╚═══════════════╝`;
   }
   else if (e) {
     if (k) n.push({ u: k, t: "v" });
@@ -77,7 +95,6 @@ async function c(q, api, t, m) {
       api.sendMessage("❌ No media for YouTube link.", t, m);
       return;
     }
-    const platform = "YouTube";
     o2 = `╔═══❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═══╗\n\t✅ Video Downloaded!\n\t📥 Platform: ${platform}\n╚═══════════════╝`;
   }
   else {
@@ -87,7 +104,6 @@ async function c(q, api, t, m) {
       return;
     }
     n.push({ u: k, t: "v" });
-    const platform = "Other";
     o2 = `╔═══❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═══╗\n\t✅ Video Downloaded!\n\t📥 Platform: ${platform}\n╚═══════════════╝`;
   }
 

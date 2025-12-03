@@ -10,7 +10,7 @@ module.exports = {
   config: {
     name: "song",
     version: "3.1",
-    author: "ChatGPT Modified",
+    author: "Rasel Mahmud",
     countDown: 5,
     role: 0,
     shortDescription: { en: "Instant song downloader (Fallback, no list)" },

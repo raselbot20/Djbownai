@@ -1,91 +1,82 @@
-const jimp = require("jimp");
-const fs = require("fs");
+const fs = require("fs-extra");
 const path = require("path");
+const axios = require("axios");
+const Jimp = require("jimp-compact");
+
+const ACCESS_TOKEN = "6628568379|c1e620fa708a1d5696fb991c1bde5662";
 
 module.exports = {
   config: {
     name: "card",
-    aliases: ["কার্ড"],
-    version: "1.8",
-    author: "Abdul Alim",
-    countDown: 2,
+    version: "10.0",
+    author: "Rasel Mahmud",
+    countDown: 5,
     role: 0,
-    shortDescription: "Face on card",
-    longDescription: "Generate a card with someone's avatar, with default fixed avatar size and position",
-    category: "love",
-    guide: {
-      en: "{pn} (use reply or mention to target someone)"
-    }
+    shortDescription: "Create love photo with a single Facebook profile picture",
+    category: "love"
   },
 
-  onStart: async function ({ message, event, args, usersData }) {
-    // Determine target
-    let uid;
-    if (event.messageReply) {
-      uid = event.messageReply.senderID;
-    } else if (Object.keys(event.mentions).length > 0) {
-      uid = Object.keys(event.mentions)[0];
-    } else {
-      uid = event.senderID;
-    }
-
-  
-    let avatarSize = 195;
-    let posX = 210;
-    let posY = 53;
-
+  onStart: async function ({ api, event }) {
     try {
-      const tmpDir = path.join(__dirname, "tmp");
-      if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+      const mentions = event.mentions || {};
+      const mentionIds = Object.keys(mentions);
 
-      // Get username
-      let username = "this person";
-      if (usersData && typeof usersData.get === 'function') {
-        const userData = await usersData.get(uid);
-        if (userData && userData.name) username = userData.name;
+      if (!mentionIds.length)
+        return api.sendMessage("⚠️ Please tag someone!", event.threadID);
+
+      const girlID = mentionIds[0];
+      const tmpDir = path.join(__dirname, "tmp");
+      fs.ensureDirSync(tmpDir);
+
+      const girlPath = path.join(tmpDir, `girl_${girlID}.png`);
+      const bgPath = path.join(tmpDir, "mylove_bg.jpg");
+      const finalPath = path.join(tmpDir, `mylove_final_${Date.now()}.png`);
+
+      async function downloadAvatar(uid, savePath) {
+        try {
+          const url = `https://graph.facebook.com/${uid}/picture?width=512&height=512&access_token=${ACCESS_TOKEN}`;
+          const res = await axios.get(url, { responseType: "arraybuffer" });
+          fs.writeFileSync(savePath, res.data);
+        } catch (e) {
+          const blank = await Jimp.create(500, 670, 0xffffffff);
+          await blank.writeAsync(savePath);
+        }
       }
 
-      // Generate image
-      const pathSave = await generateDogImage(uid, avatarSize, posX, posY);
+      await downloadAvatar(girlID, girlPath);
 
-      await message.reply({
-        body: `${username} Hope you like it 💌✨`,
-        attachment: fs.createReadStream(pathSave),
-      });
+      let bg;
+      if (fs.existsSync(bgPath)) bg = await Jimp.read(bgPath);
+      else bg = await Jimp.read("https://drive.google.com/uc?export=download&id=1jnltRDZlNqcO5RSFdKRZK6aZRvSpMGbV");
 
-      // Cleanup after 5 seconds
-      setTimeout(() => {
-        if (fs.existsSync(pathSave)) fs.unlinkSync(pathSave);
-      }, 5000);
+      let girl = await Jimp.read(girlPath);
 
-    } catch (error) {
-      console.error("Error:", error);
-      message.reply("An error occurred while processing the image.");
+      // ---------- Avatar size and position ----------
+      const avatarSize = 240;
+      const posX = 239;
+      const posY = 63;
+
+      girl.resize(avatarSize, avatarSize); // No circle()
+
+      bg.composite(girl, posX, posY);
+
+      // ---------- Final message ----------
+      const loveText = `═════ Hope you like it ═════`;
+
+      await bg.quality(100).writeAsync(finalPath);
+
+      api.sendMessage(
+        { body: loveText, attachment: fs.createReadStream(finalPath) },
+        event.threadID,
+        () => {
+          [bgPath, girlPath, finalPath].forEach(file => {
+            if (fs.existsSync(file)) fs.unlinkSync(file);
+          });
+        }
+      );
+    } catch (err) {
+      console.log(err);
+      api.sendMessage("❌ Error while creating Card picture!", event.threadID);
     }
   }
 };
-
-async function generateDogImage(targetID, avatarSize = 195, posX = 210, posY = 53) {
-  try {
-    // Fetch avatar from Facebook Graph API
-    let avatar = await jimp.read(`https://graph.facebook.com/${targetID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`);
-
-    // Square avatar - no circle cropping
-    // avatar.circle();
-
-    const pathSave = path.join(__dirname, "tmp", `${targetID}_dog.png`);
-
-    // Background 500x670
-    let img = await jimp.read("https://i.postimg.cc/zGPDKTR8/1763267411327.png");
-    img.contain(500, 670);
-
-    // Composite avatar onto background
-    img.composite(avatar.resize(avatarSize, avatarSize), posX, posY);
-
-    await img.writeAsync(pathSave);
-    return pathSave;
-  } catch (error) {
-    console.error("Error generating image:", error);
-    throw error;
-  }
-}

@@ -6,7 +6,7 @@ module.exports = {
   config: {
     name: "spotify",
     version: "1.0",
-    author: "Aryan Chauhan",
+    author: "Rasel Mahmud",
     countDown: 5,
     role: 0,
     shortDescription: "Play audio from Spotify",
@@ -22,7 +22,7 @@ module.exports = {
       api.setMessageReaction("❌", event.messageID, () => {}, true);
       return api.sendMessage(
         "❌ Please provide a search query!\nExample: spotify apt",
-   ,
+        event.threadID,
         event.messageID
       );
     }
@@ -37,7 +37,7 @@ module.exports = {
       const response = await axios({
         method: "GET",
         url,
-        responseType: "arraybuffer", 
+        responseType: "arraybuffer",
         headers: { "User-Agent": "Mozilla/5.0" },
         maxBodyLength: Infinity,
         maxContentLength: Infinity

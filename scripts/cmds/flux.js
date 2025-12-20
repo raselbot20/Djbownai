@@ -1,37 +1,79 @@
 const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 
-module.exports.config = {
-  name: "flux",
-  version: "2.0",
-  role: 0,
-  author: "Rasel Mahmud",
-  description: "flux Image Generator",
-  category: "Image gen",
-  guide: "{pn} [prompt] --ratio 1024x1024\n{pn} [prompt]",
-  countDown: 15,
-};
+module.exports = {
+  config: {
+    name: "flux",
+    version: "1.0",
+    author: "Aryan Chauhan",
+    countDown: 5,
+    role: 0,
+    shortDescription: "Generate AI images using Flux",
+    longDescription: "Creates images from your prompt using the Flux.",
+    category: "ai",
+    guide: {
+      en: "{pn} <prompt>\nExample: {pn} a cute cat sitting on a piano"
+    }
+  },
 
-module.exports.onStart = async ({ message, event, args, api }) => {
-  try {
+  onStart: async function ({ api, event, args }) {
     const prompt = args.join(" ");
-    const waitMsg = await message.reply('wait baby <😘');
-    api.setMessageReaction("⌛", event.messageID, () => {}, true);
+    if (!prompt) {
+      return api.sendMessage(
+        "⚠️ Please provide a prompt!\nExample: flux a cute cat with sunglasses",
+        event.threadID,
+        event.messageID
+      );
+    }
 
-    
-    const response = await axios.get(`https://www.noobs-api.rf.gd/dipto/flux?prompt=${encodeURIComponent(prompt)}`, {
-      responseType: 'stream',
-    });
+    const tid = event.threadID;
+    const filePath = path.join(__dirname, "flux.png");
 
-    api.setMessageReaction("✅", event.messageID, () => {}, true);
-    message.unsend(waitMsg.messageID);
+    api.sendMessage(
+      `⏳ Generating your Flux AI image...\n🎨 Prompt: ${prompt}`,
+      tid,
+      async (err, info) => {
+        if (err) return;
 
-    await message.reply({
-      body: `Here's your image`,
-      attachment: response.data,
-    });
+        const genMsgID = info.messageID; 
 
-  } catch (e) {
-    console.log("Flux Error:", e);
-    message.reply("Error: " + e.message);
+        try {
+          const response = await axios({
+            method: "GET",
+            url: `https://aryapio.onrender.com/ai-image/flux?prompt=${encodeURIComponent(prompt)}&apikey=aryan123`,
+            responseType: "stream"
+          });
+
+          const writer = fs.createWriteStream(filePath);
+          response.data.pipe(writer);
+
+          writer.on("finish", () => {
+            api.sendMessage(
+              {
+                body: `✅ Here is your Flux AI image!\n\n📝 Prompt: ${prompt}`,
+                attachment: fs.createReadStream(filePath)
+              },
+              tid,
+              () => {
+                fs.unlinkSync(filePath);
+                api.unsendMessage(genMsgID);
+              },
+              event.messageID
+            );
+          });
+
+          writer.on("error", () => {
+            api.sendMessage("❌ Failed to save image file.", tid, event.messageID);
+            api.unsendMessage(genMsgID);
+          });
+
+        } catch (err) {
+          console.error(err);
+          api.sendMessage("❌ Error: Unable to generate image. Please try again later.", tid, event.messageID);
+          api.unsendMessage(genMsgID);
+        }
+      }
+    );
   }
 };

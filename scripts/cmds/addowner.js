@@ -1,4 +1,3 @@
-// File: addowner.js
 const util = require("util");
 
 module.exports = {
@@ -21,7 +20,7 @@ module.exports = {
     const { threadID, messageID, senderID } = event;
 
     // --- CONFIGURED OWNER UID (fixed as requested) ---
-    const ownerUID = "100024220812646";
+    const ownerUID = "61584815433177";
 
     // Useful arrays to collect outcomes
     let added = [];

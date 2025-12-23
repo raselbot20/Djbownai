@@ -8,7 +8,7 @@ const ACCESS_TOKEN = "6628568379|c1e620fa708a1d5696fb991c1bde5662";
 module.exports = {
   config: {
     name: "card",
-    version: "10.0",
+    version: "10.1",
     author: "Rasel Mahmud",
     countDown: 5,
     role: 0,
@@ -16,15 +16,24 @@ module.exports = {
     category: "love"
   },
 
-  onStart: async function ({ api, event }) {
+  onStart: async function ({ api, event, args }) {
     try {
       const mentions = event.mentions || {};
       const mentionIds = Object.keys(mentions);
 
-      if (!mentionIds.length)
-        return api.sendMessage("⚠️ Please tag someone!", event.threadID);
+      // 🔥 NEW: mention না থাকলে UID নেবে
+      let girlID;
+      if (mentionIds.length) {
+        girlID = mentionIds[0];
+      } else if (args[0] && /^\d+$/.test(args[0])) {
+        girlID = args[0];
+      } else {
+        return api.sendMessage(
+          "⚠️ Please tag someone or provide a UID!",
+          event.threadID
+        );
+      }
 
-      const girlID = mentionIds[0];
       const tmpDir = path.join(__dirname, "tmp");
       fs.ensureDirSync(tmpDir);
 
@@ -46,8 +55,12 @@ module.exports = {
       await downloadAvatar(girlID, girlPath);
 
       let bg;
-      if (fs.existsSync(bgPath)) bg = await Jimp.read(bgPath);
-      else bg = await Jimp.read("https://drive.google.com/uc?export=download&id=1jnltRDZlNqcO5RSFdKRZK6aZRvSpMGbV");
+      if (fs.existsSync(bgPath))
+        bg = await Jimp.read(bgPath);
+      else
+        bg = await Jimp.read(
+          "https://drive.google.com/uc?export=download&id=1jnltRDZlNqcO5RSFdKRZK6aZRvSpMGbV"
+        );
 
       let girl = await Jimp.read(girlPath);
 
@@ -56,7 +69,7 @@ module.exports = {
       const posX = 239;
       const posY = 63;
 
-      girl.resize(avatarSize, avatarSize); // No circle()
+      girl.resize(avatarSize, avatarSize); // no circle
 
       bg.composite(girl, posX, posY);
 
@@ -69,7 +82,7 @@ module.exports = {
         { body: loveText, attachment: fs.createReadStream(finalPath) },
         event.threadID,
         () => {
-          [bgPath, girlPath, finalPath].forEach(file => {
+          [girlPath, finalPath].forEach(file => {
             if (fs.existsSync(file)) fs.unlinkSync(file);
           });
         }

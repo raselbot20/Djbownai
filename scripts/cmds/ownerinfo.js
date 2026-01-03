@@ -23,7 +23,7 @@ module.exports = {
 
     longDescription: "Displays information about the bot's owner or admin.",
 
-    category: "system",
+    category: "info",
 
     guide: {
 

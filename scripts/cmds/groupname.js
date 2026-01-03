@@ -7,7 +7,7 @@ module.exports = {
     role: 1, // শুধু গ্রুপ অ্যাডমিন বা বট অ্যাডমিন (চাওলে 0 করো)
     shortDescription: "Change group name",
     longDescription: "তুমি যেই নাম দেবে সেটাই গ্রুপের নতুন নাম হবে।",
-    category: "box",
+    category: "box chat",
     guide: "{pn} [new name]"
   },
 

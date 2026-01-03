@@ -10,7 +10,7 @@ module.exports = {
     role: 1, // অ্যাডমিন বা মডারেটরদের জন্য (চাওলে 0 করো)
     shortDescription: "Change group photo",
     longDescription: "রিপ্লাই দেওয়া ছবিটাকে গ্রুপ প্রোফাইল ছবিতে সেট করবে",
-    category: "box",
+    category: "box chat",
     guide: "{pn} (একটা ছবিতে রিপ্লাই দাও)"
   },
 

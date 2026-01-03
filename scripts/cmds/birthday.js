@@ -8,42 +8,57 @@ const ACCESS_TOKEN = "6628568379|c1e620fa708a1d5696fb991c1bde5662";
 module.exports = {
   config: {
     name: "birthday",
-		aliases: ["brd"],
-    version: "10.0",
+    aliases: ["brd"],
+    version: "10.2",
     author: "Rasel Mahmud",
     countDown: 5,
     role: 0,
-    description: "🎂 Make a birthday wish card with round profile",
+    description: "Make a birthday wish card with round profile",
     category: "birthday"
   },
 
-  guide: { en: "{pn} <@tag>" },
+  guide: { en: "{pn} <@tag | uid>" },
 
-  onStart: async function ({ api, event }) {
+  onStart: async function ({ api, event, args }) {
     try {
       const mentions = event.mentions || {};
       const mentionIds = Object.keys(mentions);
 
-      if (!mentionIds.length)
-        return api.sendMessage("⚠️ Please tag someone!", event.threadID);
+      let targetID;
+      let displayName;
 
-      // ⭐ Only one profile → The mentioned person
-      const targetID = mentionIds[0];
+      // ✅ Tag support
+      if (mentionIds.length > 0) {
+        targetID = mentionIds[0];
+        displayName = mentions[targetID];
+      }
+      // ✅ UID support
+      else if (args[0] && /^\d+$/.test(args[0])) {
+        targetID = args[0];
+        const userInfo = await api.getUserInfo(targetID);
+        displayName = userInfo[targetID]?.name || "Happy Birthday";
+      }
+      else {
+        return api.sendMessage(
+          "⚠️ Please tag someone or provide a valid UID!",
+          event.threadID,
+          event.messageID
+        );
+      }
 
       const tmpDir = path.join(__dirname, "tmp");
       fs.ensureDirSync(tmpDir);
 
       const avatarPath = path.join(tmpDir, `birthday_${targetID}.png`);
-      const bgPath = path.join(tmpDir, "birthday_bg.jpg");
       const finalPath = path.join(tmpDir, `birthday_final_${Date.now()}.png`);
 
-      // ⭐ Download Avatar
+      // 📥 Download avatar
       async function downloadAvatar(uid, savePath) {
         try {
           const url = `https://graph.facebook.com/${uid}/picture?width=512&height=512&access_token=${ACCESS_TOKEN}`;
           const res = await axios.get(url, { responseType: "arraybuffer" });
           fs.writeFileSync(savePath, res.data);
-        } catch (e) {
+        } catch {
           const blank = await Jimp.create(512, 512, 0xffffffff);
           await blank.writeAsync(savePath);
         }
@@ -51,33 +66,31 @@ module.exports = {
 
       await downloadAvatar(targetID, avatarPath);
 
-      // ⭐ Background load
-      let bg;
-      if (fs.existsSync(bgPath)) {
-        bg = await Jimp.read(bgPath);
-      } else {
-        bg = await Jimp.read("https://drive.google.com/uc?export=download&id=1etAD7ZzbXuLHsvljmL3-y83TVeKKxm4b");
-      }
+      // 🖼️ Background
+      const bg = await Jimp.read(
+        "https://drive.google.com/uc?export=download&id=1etAD7ZzbXuLHsvljmL3-y83TVeKKxm4b"
+      );
 
-      let avatar = await Jimp.read(avatarPath);
+      const avatar = await Jimp.read(avatarPath);
 
-      // ⭐ Round profile
+      // 🔵 Round avatar
       const size = 328;
       avatar.resize(size, size).circle();
 
-      // ⭐ Center Position
+      // 📐 Position
       const posX = (bg.bitmap.width - size) / 9;
       const posY = 237;
 
       bg.composite(avatar, posX, posY);
 
-      // ⭐ Final Wish Text
-      const wishText = `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱══════╗
-			🎉${mentions[targetID]}🎉
-				  	🎂 𝐇𝐚𝐩𝐩𝐲 𝐁𝐢𝐫𝐭𝐡𝐝𝐚𝐲 🎂
-	🎀 Many Many Happy 
-													Returns Of The Day!
-╚════════════════════╝`;
+      // 🎂 Text
+      const wishText =
+        "╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱══════╗\n" +
+        `🎉 ${displayName} 🎉\n` +
+        "________🎂 Happy Birthday 🎂\n" +
+        "🎀 Many Many Happy\n" +
+        "_____________Returns Of The Day!\n" +
+        "╚════════════════════╝";
 
       await bg.quality(100).writeAsync(finalPath);
 
@@ -88,15 +101,18 @@ module.exports = {
         },
         event.threadID,
         () => {
-          [bgPath, avatarPath, finalPath].forEach(file => {
-            if (fs.existsSync(file)) fs.unlinkSync(file);
-          });
+          if (fs.existsSync(avatarPath)) fs.unlinkSync(avatarPath);
+          if (fs.existsSync(finalPath)) fs.unlinkSync(finalPath);
         }
       );
 
     } catch (err) {
-      console.log(err);
-      api.sendMessage("❌ Error while creating birthday picture!", event.threadID);
+      console.error(err);
+      api.sendMessage(
+        "❌ Error while creating birthday picture!",
+        event.threadID,
+        event.messageID
+      );
     }
   }
 };

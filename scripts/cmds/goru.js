@@ -1,4 +1,4 @@
-const fs = require("fs-extra");
+* cmd install goru.js const fs = require("fs-extra");
 const path = require("path");
 const axios = require("axios");
 const { createCanvas, loadImage } = require("canvas");
@@ -138,7 +138,7 @@ module.exports = {
       const tagName = userInfo[targetID]?.name || "Someone";
 
       await message.reply({
-        body: `🤣\n@${tagName} 100% foreign cow energy 🐮`,
+        body: `@🤣${tagName} 100%🐮`,
         mentions: [{ tag: tagName, id: targetID }],
         attachment: fs.createReadStream(outputPath),
       });
@@ -148,9 +148,10 @@ module.exports = {
       }
 
       setTimeout(() => fs.unlink(outputPath).catch(() => {}), 5000);
+
     } catch (err) {
       console.error("❌ Goru Command Error:", err);
-      return message.reply("⚠️ something wrong, trying again 🙂");
+      message.reply("❌ Something went wrong while making goru 😭");
     }
-  },
+  }
 };

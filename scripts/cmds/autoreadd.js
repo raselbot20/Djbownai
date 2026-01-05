@@ -15,6 +15,7 @@ function save(data) {
 module.exports = {
   config: {
     name: "autoreadd",
+		aliases: ["antiout"],
     version: "3.0",
     author: "Rasel Mahmud",
     countDown: 5,
@@ -35,7 +36,7 @@ module.exports = {
     const isBotAdmin = event.role >= 1;
 
     if (!isGroupAdmin && !isBotAdmin) {
-      return api.sendMessage("❌ Only Bot Admin or Group Admin can use this command!", tid);
+      return api.sendMessage("❌ Only Group Admin can use this command!", tid);
     }
 
     let data = load();

@@ -11,7 +11,7 @@ module.exports = {
   config: {
 
 
-    name: "ownerinfo",
+    name: "info",
 
 
     aliases: ["owner", "botadmin"],

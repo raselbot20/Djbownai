@@ -8,176 +8,176 @@ const fs = require("fs-extra");
 module.exports = {
 
 
-  config: {
+  config: {
 
 
-    name: "info",
+    name: "info",
 
 
-    aliases: ["owner", "botadmin"],
+    aliases: ["owner", "botadmin"],
 
 
-    version: "1.0.1",
+    version: "1.0.1",
 
 
-    author: "Rasel Mahmud",
+    author: "Rasel Mahmud",
 
 
-    countDown: 5,
+    countDown: 5,
 
 
-    role: 0,
+    role: 0,
 
 
-    shortDescription: "Show bot owner/admin info",
+    shortDescription: "Show bot owner/admin info",
 
 
-    longDescription: "Displays information about the bot's owner or admin.",
+    longDescription: "Displays information about the bot's owner or admin.",
 
 
-    category: "info",
+    category: "info",
 
 
-    guide: {
+    guide: {
 
 
-      en: "{pn} admin"
+      en: "{pn} admin"
 
 
-    }
+    }
 
 
-  },
+  },
 
 
 
-  onStart: async function ({ api, event, args }) {
+  onStart: async function ({ api, event, args }) {
 
 
-    const input = args.join(" ").toLowerCase().replace(/\s+/g, " ");
+    const input = args.join(" ").toLowerCase().replace(/\s+/g, " ");
 
 
 
-    const validInputs = [
+    const validInputs = [
 
 
-      "owner",
+      "owner",
 
 
-      "adminbot",
+      "adminbot",
 
 
-      "botadmin",
+      "botadmin",
 
 
-      "bot admin",
+      "bot admin",
 
 
-      "owner bot",
+      "owner bot",
 
 
-      "botowner",
+      "botowner",
 
 
-      "ownerinfo",
+      "ownerinfo",
 
 
-      "adminbotinfo",
+      "adminbotinfo",
 
 
-      "botadmininfo",
+      "botadmininfo",
 
 
-      "bot admin info",
+      "bot admin info",
 
 
-      "owner bot info",
+      "owner bot info",
 
 
-      "botownerinfo"
+      "botownerinfo"
 
 
-    ];
+    ];
 
 
 
-    // যদি ইনপুট না দেয়, তবুও কাজ করবে
+    // যদি ইনপুট না দেয়, তবুও কাজ করবে
 
 
-    if (input && !validInputs.includes(input)) {
+    if (input && !validInputs.includes(input)) {
 
 
-      return;
+      return;
 
 
-    }
+    }
 
 
 
-    const msg = `
+    const msg = `
 ╔═══════◇🌟◇═══════╗
-         𝘽𝙊𝙏 𝙊𝙒𝙉𝙀𝙍 𝙄𝙉𝙁𝙊
+         𝘽𝙊𝙏 𝙊𝙒𝙉𝙀𝙍 𝙄𝙉𝙁𝙊
 ╚═══════◇💠◇═══════╝
 ╔🪪 Name 	: Rasel Mahmud					
 ╠📏 Height : 5 feet 8 inches
 ╠🌍 Location : Lives in Mymensingh, studies in Rajshahi
-╠🔗 Facebook	: https://www.facebook.com/rasel.mahmud.689584
+╠🔗 Facebook	: https://www.facebook.com/profile.php?id=61586335299049
 ╠🛡️ YouTube : https://youtube.com/@rmsilentgaming
 ╚═══════════════════╝
 ════════◇✨◇══════
 Thanks for your interest in the owner!
-   𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 💎✨𝐇𝓾𝐛
+   𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 💎✨𝐇𝓾𝐛
 ════════◇🔮◇══════
 `;
 
 
 
-    const imgURL = "https://graph.facebook.com/100082948161197/picture?height=720&width=720&access_token=6628568379|c1e620fa708a1d5696fb991c1bde5662";
+    const imgURL = "https://graph.facebook.com/61586335299049/picture?height=720&width=720&access_token=6628568379|c1e620fa708a1d5696fb991c1bde5662";
 
 
-    const path = __dirname + "/admin_info.jpg";
-
-
-
-    try {
-
-
-      const res = await axios.get(imgURL, { responseType: "arraybuffer" });
-
-
-      fs.writeFileSync(path, Buffer.from(res.data, "binary"));
+    const path = __dirname + "/admin_info.jpg";
 
 
 
-      await api.sendMessage({
+    try {
 
 
-        body: msg,
+      const res = await axios.get(imgURL, { responseType: "arraybuffer" });
 
 
-        attachment: fs.createReadStream(path)
-
-
-      }, event.threadID, () => fs.unlinkSync(path), event.messageID);
+      fs.writeFileSync(path, Buffer.from(res.data, "binary"));
 
 
 
-      api.setMessageReaction("🤺", event.messageID, () => {}, true);
+      await api.sendMessage({
 
 
-    } catch (e) {
+        body: msg,
 
 
-      console.error("⚠️ Error sending admin info:", e);
+        attachment: fs.createReadStream(path)
 
 
-      api.sendMessage(msg, event.threadID, event.messageID);
+      }, event.threadID, () => fs.unlinkSync(path), event.messageID);
 
 
-    }
+
+      api.setMessageReaction("🤺", event.messageID, () => {}, true);
 
 
-  }
+    } catch (e) {
+
+
+      console.error("⚠️ Error sending admin info:", e);
+
+
+      api.sendMessage(msg, event.threadID, event.messageID);
+
+
+    }
+
+
+  }
 
 
 };

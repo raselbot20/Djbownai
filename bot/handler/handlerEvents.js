@@ -181,21 +181,24 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
 			hideNotiMessage = threadData.settings.hideNotiMessage;
 
 		const prefix = getPrefix(threadID);
-		const role = getRole(threadData, senderID);
+const role = getRole(threadData, senderID);
 
-		// ====================== AUTO MENTION FIX ====================== //
-		if (event.body && (!event.mentions || Object.keys(event.mentions).length === 0)) {  
-    	if (threadData && threadData.data && threadData.data.userInfo) {  
-        event.mentions = {};  
-        const bodyLower = event.body.toLowerCase();  
-
-        for (const member of threadData.data.userInfo) {  
-            if (member.name && bodyLower.includes(member.name.toLowerCase())) {  
-                event.mentions[member.id] = member.name;  
-            			}  
-      			  }  
-   			 }
-		}
+// ====================== AUTO-MENTION FIX ====================== //
+if (typeof event.body === "string" && (!event.mentions || Object.keys(event.mentions).length === 0)) {
+  if (threadData?.data?.userInfo) {
+    const bodyLower = event.body.toLowerCase();
+    let newMentions = {};
+    for (const member of threadData.data.userInfo) {
+      if (!member.name || !member.id) continue;
+      const nameLower = member.name.toLowerCase();
+      if (bodyLower.includes(nameLower)) newMentions[member.id] = member.name;
+    }
+    if (Object.keys(newMentions).length > 0) {
+      event.mentions = newMentions;
+      if (message) message.mentions = newMentions;
+    }
+  }
+}
 
 		const parameters = {
     	api, usersData, threadsData, message, event,

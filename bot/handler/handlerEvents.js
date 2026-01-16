@@ -182,34 +182,35 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
 
 		const prefix = getPrefix(threadID);
 		const role = getRole(threadData, senderID);
-		
+
 		// ====================== AUTO MENTION FIX ====================== //
 		if (event.body && (!event.mentions || Object.keys(event.mentions).length === 0)) {  
-            // Priority 1: Check Thread Participants (Fastest & Accurate for Groups)  
-            if (threadData && threadData.data && threadData.data.userInfo) {  
-                event.mentions = {};  
-                const bodyLower = event.body.toLowerCase();  
-                for (const member of threadData.data.userInfo) {  
-                    if (member.name && bodyLower.includes(member.name.toLowerCase())) {  
-                        event.mentions[member.id] = member.name;  
-                    }  
-                }  
-            }
-			
-		const parameters = {
-			api, usersData, threadsData, message, event,
-			userModel, threadModel, prefix, dashBoardModel,
-			globalModel, dashBoardData, globalData, envCommands,
-			envEvents, envGlobal, role,
-			removeCommandNameFromBody: function removeCommandNameFromBody(body_, prefix_, commandName_) {
-				if ([body_, prefix_, commandName_].every(x => nullAndUndefined.includes(x)))
-					throw new Error("Please provide body, prefix and commandName to use this function, this function without parameters only support for onStart");
-				for (let i = 0; i < arguments.length; i++)
-					if (typeof arguments[i] != "string")
-						throw new Error(`The parameter "${i + 1}" must be a string, but got "${getType(arguments[i])}"`);
+    	if (threadData && threadData.data && threadData.data.userInfo) {  
+        event.mentions = {};  
+        const bodyLower = event.body.toLowerCase();  
 
-				return body_.replace(new RegExp(`^${prefix_}(\\s+|)${commandName_}`, "i"), "").trim();
-			}
+        for (const member of threadData.data.userInfo) {  
+            if (member.name && bodyLower.includes(member.name.toLowerCase())) {  
+                event.mentions[member.id] = member.name;  
+            			}  
+      			  }  
+   			 }
+		}
+
+		const parameters = {
+    	api, usersData, threadsData, message, event,
+    	userModel, threadModel, prefix, dashBoardModel,
+    	globalModel, dashBoardData, globalData, envCommands,
+    	envEvents, envGlobal, role,
+  		removeCommandNameFromBody: function removeCommandNameFromBody(body_, prefix_, commandName_) {
+        if ([body_, prefix_, commandName_].every(x => nullAndUndefined.includes(x)))
+            throw new Error("Please provide body, prefix and commandName to use this function, this function without parameters only support for onStart");
+        for (let i = 0; i < arguments.length; i++)
+            if (typeof arguments[i] != "string")
+                throw new Error(`The parameter "${i + 1}" must be a string, but got "${getType(arguments[i])}"`);
+
+        return body_.replace(new RegExp(`^${prefix_}(\\s+|)${commandName_}`, "i"), "").trim();
+   			 }
 		};
 		const langCode = threadData.data.lang || config.language || "en";
 

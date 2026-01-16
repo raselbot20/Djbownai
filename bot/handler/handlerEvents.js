@@ -182,6 +182,20 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
 
 		const prefix = getPrefix(threadID);
 		const role = getRole(threadData, senderID);
+		
+		// ====================== AUTO MENTION FIX ====================== //
+		if (event.body && (!event.mentions || Object.keys(event.mentions).length === 0)) {  
+            // Priority 1: Check Thread Participants (Fastest & Accurate for Groups)  
+            if (threadData && threadData.data && threadData.data.userInfo) {  
+                event.mentions = {};  
+                const bodyLower = event.body.toLowerCase();  
+                for (const member of threadData.data.userInfo) {  
+                    if (member.name && bodyLower.includes(member.name.toLowerCase())) {  
+                        event.mentions[member.id] = member.name;  
+                    }  
+                }  
+            }
+			
 		const parameters = {
 			api, usersData, threadsData, message, event,
 			userModel, threadModel, prefix, dashBoardModel,
@@ -319,18 +333,6 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
 		}
 
 
-			if (event.body && (!event.mentions || Object.keys(event.mentions).length === 0)) {  
-            // Priority 1: Check Thread Participants (Fastest & Accurate for Groups)  
-            if (threadData && threadData.data && threadData.data.userInfo) {  
-                event.mentions = {};  
-                const bodyLower = event.body.toLowerCase();  
-                for (const member of threadData.data.userInfo) {  
-                    if (member.name && bodyLower.includes(member.name.toLowerCase())) {  
-                        event.mentions[member.id] = member.name;  
-                    }  
-                }  
-			}	
-		
 		/*
 		 +------------------------------------------------+
 		 |                    ON CHAT                     |

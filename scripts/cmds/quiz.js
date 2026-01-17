@@ -1,168 +1,91 @@
 const axios = require("axios");
-const fs = require("fs-extra");
-const path = __dirname + "/coinxbalance.json";
 
-// ✅ ফাইল না থাকলে তৈরি করো
-if (!fs.existsSync(path)) {
-  fs.writeFileSync(path, JSON.stringify({}, null, 2));
-}
+const mahmud = async () => {
+  const base = await axios.get("https://raw.githubusercontent.com/mahmudx7/HINATA/main/baseApiUrl.json");
+  return base.data.mahmud;
+};
 
-// 🔹 ব্যালেন্স পড়া
-function getBalance(userID) {
-  try {
-    const data = JSON.parse(fs.readFileSync(path, "utf-8"));
-    if (data[userID]?.balance !== undefined) return data[userID].balance;
-    return userID === "100078049308655" ? 10000 : 100;
-  } catch {
-    return 100;
-  }
-}
-
-// 🔹 ব্যালেন্স সেট করা
-function setBalance(userID, balance) {
-  try {
-    const data = JSON.parse(fs.readFileSync(path, "utf-8"));
-    data[userID] = { balance: Math.max(0, balance) };
-    fs.writeFileSync(path, JSON.stringify(data, null, 2));
-  } catch {}
-}
-
-// 🔹 সংখ্যা ফরম্যাট
-function formatBalance(num) {
-  if (num >= 1e12) return (num / 1e12).toFixed(2).replace(/\.00$/, "") + "T$";
-  if (num >= 1e9) return (num / 1e9).toFixed(2).replace(/\.00$/, "") + "B$";
-  if (num >= 1e6) return (num / 1e6).toFixed(2).replace(/\.00$/, "") + "M$";
-  if (num >= 1e3) return (num / 1e3).toFixed(2).replace(/\.00$/, "") + "k$";
-  return num + "$";
-}
+/**
+* @author MahMUD
+* @author: do not delete it
+*/
 
 module.exports = {
   config: {
     name: "quiz",
-    version: "6.0",
-    author: "MOHAMMAD AKASH",
-    countDown: 5,
+    aliases: ["qz"],
+    version: "1.7",
+    author: "MahMUD",
+    countDown: 10,
     role: 0,
-    shortDescription: "✦ বাংলা কুইজ ✦ কয়েন সহ 🎯",
     category: "game",
-    guide: { en: "{p}quiz | {p}quiz h" },
+    guide: {
+      en: "{pn}"
+    }
   },
 
-  onStart: async function ({ api, event, args }) {
-    const { threadID, senderID, messageID } = event;
-    const balance = getBalance(senderID);
-    const TIMEOUT = 20000;
-
-    // 🧠 সাহায্য মেনু
-    if (args[0]?.toLowerCase() === "h" || args[0] === "help") {
-      const helpMsg = `🧠 কুইজ গাইড 🎯
-━━━━━━━━━━━━━━━
-✅ সঠিক উত্তর: +১,০০০ কয়েন
-❌ ভুল উত্তর: -৫০ কয়েন
-⏳ সময়: ২০ সেকেন্ড
-💰 ন্যূনতম ব্যালেন্স: ৩০ কয়েন
-━━━━━━━━━━━━━━━
-🎮 উদাহরণ: !quiz`;
-      return api.sendMessage(helpMsg, threadID, messageID);
-    }
-
-    // 💰 কয়েন চেক
-    if (balance < 30) {
-      const low = `⚠️ কয়েন কম!
-💎 বর্তমান: ${formatBalance(balance)}
-🎮 খেলতে ন্যূনতম দরকার: 30$`;
-      return api.sendMessage(low, threadID, messageID);
-    }
-
+  onStart: async function ({ api, event, usersData, args }) {
+    const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68); 
+     if (module.exports.config.author !== obfuscatedAuthor) {
+      return api.sendMessage("You are not authorized to change the author name.\n", event.threadID, event.messageID);
+     }
+    
     try {
-      // 📡 কুইজ API
-      const { data } = await axios.get(
-        "https://rubish-apihub.onrender.com/rubish/quiz-api?category=Bangla&apikey=rubish69"
-      );
+      const input = args.join("").toLowerCase() || "bn";
+      const category = input === "en" || input === "english" ? "english" : "bangla";
 
-      if (!data?.question || !data?.answer) throw new Error("Invalid API");
+      const apiUrl = await mahmud();
+      const res = await axios.get(`${apiUrl}/api/quiz?category=${category}`);
+      const quiz = res.data;
 
-      const question = `✦ বাংলা কুইজ ✦
-${data.question}
+      if (!quiz) {
+        return api.sendMessage("❌ No quiz available for this category.", event.threadID, event.messageID);
+      }
 
-🇦 ${data.A} • 🇧 ${data.B}
-🇨 ${data.C} • 🇩 ${data.D}
+      const { question, correctAnswer, options } = quiz;
+      const { a, b, c, d } = options;
+      const quizMsg = {
+        body: `\n╭──✦ ${question}\n├‣ 𝗔) ${a}\n├‣ 𝗕) ${b}\n├‣ 𝗖) ${c}\n├‣ 𝗗) ${d}\n╰──────────────────‣\n𝐑𝐞𝐩𝐥𝐲 𝐰𝐢𝐭𝐡 𝐲𝐨𝐮𝐫 𝐚𝐧𝐬𝐰𝐞𝐫.`,
+      };
 
-⏰ ২০ সেকেন্ড | উত্তর: A/B/C/D`;
-
-      api.sendMessage(question, threadID, (err, info) => {
-        if (err || !info) return;
-
-        const timeout = setTimeout(async () => {
-          try {
-            await api.unsendMessage(info.messageID);
-            api.sendMessage(
-              `⏰ সময় শেষ!
-✅ সঠিক উত্তর ছিল: ${data.answer}`,
-              threadID
-            );
-          } catch {}
-          global.GoatBot.onReply.delete(info.messageID);
-        }, TIMEOUT);
-
+      api.sendMessage(quizMsg, event.threadID, (error, info) => {
         global.GoatBot.onReply.set(info.messageID, {
-          commandName: module.exports.config.name,
-          author: senderID,
-          answer: data.answer,
+          type: "reply",
+          commandName: this.config.name,
+          author: event.senderID,
           messageID: info.messageID,
-          timeout,
+          correctAnswer
         });
+
+        setTimeout(() => {
+          api.unsendMessage(info.messageID);
+        }, 40000);
+      }, event.messageID);
+    } catch (error) {
+      console.error(error);
+      api.sendMessage("🥹error, contact MahMUD.", event.threadID, event.messageID);
+    }
+  },
+
+  onReply: async function ({ event, api, Reply, usersData }) {
+    const { correctAnswer, author } = Reply;
+    if (event.senderID !== author) return api.sendMessage("𝐓𝐡𝐢𝐬 𝐢𝐬 𝐧𝐨𝐭 𝐲𝐨𝐮𝐫 𝐪𝐮𝐢𝐳 𝐛𝐚𝐛𝐲 >🐸", event.threadID, event.messageID);
+
+    await api.unsendMessage(Reply.messageID);
+    const userReply = event.body.trim().toLowerCase();
+
+    if (userReply === correctAnswer.toLowerCase()) {
+      const rewardCoins = 500;
+      const rewardExp = 121;
+      const userData = await usersData.get(author);
+      await usersData.set(author, {
+        money: userData.money + rewardCoins,
+        exp: userData.exp + rewardExp,
+        data: userData.data
       });
-    } catch (err) {
-      return api.sendMessage(
-        `❌ সমস্যা হয়েছে!
-😵 কুইজ লোড করা যায়নি, পরে আবার চেষ্টা করো।`,
-        threadID,
-        messageID
-      );
-    }
-  },
-
-  // 🔁 উত্তর হ্যান্ডলিং
-  onReply: async function ({ api, event, Reply }) {
-    const { senderID, body, threadID } = event;
-    if (senderID !== Reply.author) return;
-
-    const answer = body.trim().toUpperCase();
-    if (!["A", "B", "C", "D"].includes(answer)) {
-      return api.sendMessage(
-        `⚠️ শুধু লিখো A / B / C / D\nউদাহরণ: A`,
-        threadID
-      );
-    }
-
-    clearTimeout(Reply.timeout);
-    const correct = answer === Reply.answer;
-    let balance = getBalance(senderID);
-
-    if (correct) {
-      balance += 1000;
-      setBalance(senderID, balance);
-      await api.unsendMessage(Reply.messageID);
-      global.GoatBot.onReply.delete(Reply.messageID);
-
-      api.sendMessage(
-        `✅ সঠিক উত্তর!
-🎉 তুমি জিতেছ +১,০০০ কয়েন!
-💎 নতুন ব্যালেন্স: ${formatBalance(balance)}`,
-        threadID
-      );
+      api.sendMessage(`✅ | Correct answer baby\nYou earned ${rewardCoins} coins & ${rewardExp} exp.`, event.threadID, event.messageID);
     } else {
-      balance = Math.max(0, balance - 50);
-      setBalance(senderID, balance);
-
-      api.sendMessage(
-        `❌ ভুল উত্তর!
-😔 -৫০ কয়েন কেটে নেওয়া হয়েছে
-💎 বর্তমান ব্যালেন্স: ${formatBalance(balance)}
-🔄 আবার চেষ্টা করো!`,
-        threadID
-      );
+      api.sendMessage(`❌ | Wrong answer baby\nThe correct answer was: ${correctAnswer}`, event.threadID, event.messageID);
     }
-  },
+  }
 };

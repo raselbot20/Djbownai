@@ -21,8 +21,8 @@ const boldText = (text) => {
 
 module.exports = {
   config: {
-    name: "uptime",
-    aliases: ["upt"],
+    name: "uptime2",
+    aliases: ["time"],
     version: "1.3",
     usePrefix: false,
     author: "𝐌𝐨𝐬𝐭𝐚𝐤𝐢𝐦",

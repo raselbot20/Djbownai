@@ -5,9 +5,9 @@ const path = require("path");
 module.exports = {
   config: {
     name: "coverpicture",
-		aliases: ["cr"],
+    aliases: ["cr", "cp"],
     version: "8.0.0",
-    author: "Rafi Chowdhury|Rasel Mahmud",
+    author: "Rafi | Rasel",
     countDown: 5,
     role: 0,
     description: "Get cover photo (Self, Reply, Tag, Link)",
@@ -39,7 +39,6 @@ module.exports = {
             targetID = input;
         }
     } else {
-        // If no input, use Sender ID (Self)
         targetID = senderID;
     }
 
@@ -48,22 +47,21 @@ module.exports = {
     }
 
     try {
-      api.setMessageReaction("📂", messageID, () => {}, true);
+      api.setMessageReaction("⏳", messageID, () => {}, true);
 
-      // Load Cookies
-      const accountPath = path.join(process.cwd(), "account.txt");
-      const finalPath = fs.existsSync(accountPath) ? accountPath : path.join(process.cwd(), "Account.txt");
+      // Load Cookies from account.dev.txt
+      const accountPath = path.join(process.cwd(), "account.dev.txt");
       
-      if (!fs.existsSync(finalPath)) {
-        return api.sendMessage("❌ 'account.txt' not found.", threadID, messageID);
+      if (!fs.existsSync(accountPath)) {
+        return api.sendMessage("❌ 'account.dev.txt' not found.", threadID, messageID);
       }
 
-      const cookieContent = fs.readFileSync(finalPath, "utf8");
+      const cookieContent = fs.readFileSync(accountPath, "utf8");
       let cookies;
       try {
         cookies = JSON.parse(cookieContent);
       } catch (err) {
-        return api.sendMessage("❌ Invalid JSON in account.txt", threadID, messageID);
+        return api.sendMessage("❌ Invalid JSON in account.dev.txt", threadID, messageID);
       }
 
       const cookieString = cookies.map(c => `${c.key}=${c.value}`).join("; ");

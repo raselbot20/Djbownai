@@ -15,16 +15,14 @@ module.exports = {
     guide: { en: "{pn} [uid/link/tag] or empty for self" }
   },
 
-  onStart: async function ({ api, event, args }) {
+  onStart: async function ({ api, event, args, usersData }) {
     const { threadID, messageID, mentions, type, messageReply, senderID } = event;
 
-    // Target Resolver
+    // ===== Target Resolver =====
     let targetID = null;
-    if (type === "message_reply") {
-      targetID = messageReply.senderID;
-    } else if (Object.keys(mentions).length > 0) {
-      targetID = Object.keys(mentions)[0];
-    } else if (args[0]) {
+    if (type === "message_reply") targetID = messageReply.senderID;
+    else if (Object.keys(mentions || {}).length > 0) targetID = Object.keys(mentions)[0];
+    else if (args[0]) {
       const input = args[0];
       if (input.startsWith("http")) {
         const idMatch = input.match(/[?&]id=(\d+)/);
@@ -124,12 +122,20 @@ module.exports = {
         writer.on("error", reject);
       });
 
-      // Custom message body
+      // ===== UPDATED MESSAGE BODY =====
+      const userData = await usersData.get(targetID);
+      const name = userData?.name || "Unknown User";
+      const link = `https://facebook.com/${targetID}`;
+
       const messageBody = `
-╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗
+╔═════❰ 𝗛𝗲𝗜𝗶•𝗟𝗨𝗠𝗢 ❱═════╗
 🌸✨ 𝐂𝐨𝐯𝐞𝐫 𝐕𝐢𝐞𝐰 𝐌𝐚𝐬𝐭𝐞𝐫 ✨🌸
+
+👤 𝙽𝚊𝚖𝚎 : ${name} ✰
+🆔 𝚄𝚒𝚍  : ${targetID}
+🌐 𝙻𝚒𝚗𝚔 : ${link}
+
 🍓 𝗛𝗲𝗿𝗲 𝗶𝘀 𝘆𝗼𝘂𝗿 𝗰𝗼𝘃𝗲𝗿 𝗶𝗻 𝘀𝘁𝘆𝗹𝗲 💞
-🌈 𝐄𝐧𝐣𝐨𝐲 𝐭𝐡𝐞 𝐦𝐨𝐦𝐞𝐧𝐭, 𝐬𝐰𝐞𝐞𝐭𝐡𝐞𝐚𝐫𝐭✨
 ╚════════════════════╝
 `;
 

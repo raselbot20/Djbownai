@@ -6,7 +6,7 @@ module.exports = {
   config: {
     name: "profile",
     aliases: ["pp", "dp"],
-    version: "8.0.1",
+    version: "8.0.2",
     author: "Rafi | Rasel",
     countDown: 5,
     role: 0,
@@ -63,44 +63,55 @@ module.exports = {
       } catch {}
 
       if (!coverUrl) {
-        const desktopUrl = `https://www.facebook.com/${targetID}`;
-        const resDesktop = await axios.get(desktopUrl, {
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-            Cookie: cookieString,
-            Accept: "text/html,application/xhtml+xml"
-          }
-        });
-        const htmlD = resDesktop.data;
-        const regexJSON = /"cover_photo":\{.*?"uri":"(https:[^"]+)"/;
-        const matchJSON = htmlD.match(regexJSON);
-        const regexPhoto = /"profile_cover_photo":\{.*?"uri":"(https:[^"]+)"/;
-        const matchPhoto = htmlD.match(regexPhoto);
+        try {
+          const desktopUrl = `https://www.facebook.com/${targetID}`;
+          const resDesktop = await axios.get(desktopUrl, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+              Cookie: cookieString,
+              Accept: "text/html,application/xhtml+xml"
+            }
+          });
+          const htmlD = resDesktop.data;
+          const regexJSON = /"cover_photo":\{.*?"uri":"(https:[^"]+)"/;
+          const matchJSON = htmlD.match(regexJSON);
+          const regexPhoto = /"profile_cover_photo":\{.*?"uri":"(https:[^"]+)"/;
+          const matchPhoto = htmlD.match(regexPhoto);
 
-        if (matchJSON && matchJSON[1]) coverUrl = JSON.parse(`"${matchJSON[1]}"`);
-        else if (matchPhoto && matchPhoto[1]) coverUrl = JSON.parse(`"${matchPhoto[1]}"`);
+          if (matchJSON && matchJSON[1]) coverUrl = JSON.parse(`"${matchJSON[1]}"`);
+          else if (matchPhoto && matchPhoto[1]) coverUrl = JSON.parse(`"${matchPhoto[1]}"`);
+        } catch {}
       }
-
-      if (!coverUrl) throw new Error("Cover photo not found.");
-
-      const coverPath = path.join(__dirname, `scraped_cover_${Date.now()}.jpg`);
-      const writer = fs.createWriteStream(coverPath);
-      const imgResponse = await axios({ url: coverUrl, method: "GET", responseType: "stream" });
-      imgResponse.data.pipe(writer);
-      await new Promise((resolve, reject) => { writer.on("finish", resolve); writer.on("error", reject); });
 
       const cacheDir = path.join(__dirname, "cache");
       if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
-      const profilePath = path.join(cacheDir, `profile_${targetID}.png`);
-      const profileUrl = `https://graph.facebook.com/${targetID}/picture?height=1500&width=1500&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
 
-      const profileWriter = fs.createWriteStream(profilePath);
-      const profileResponse = await axios({ url: profileUrl, method: "GET", responseType: "stream" });
-      profileResponse.data.pipe(profileWriter);
-      await new Promise((resolve, reject) => { profileWriter.on("finish", resolve); profileWriter.on("error", reject); });
+      let attachments = [];
 
-      let profileStatus = "✅";
-      let coverStatus = "✅";
+      // Profile Picture
+      let profilePath = path.join(cacheDir, `profile_${targetID}.png`);
+      try {
+        const profileUrl = `https://graph.facebook.com/${targetID}/picture?height=1500&width=1500&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
+        const profileWriter = fs.createWriteStream(profilePath);
+        const profileResponse = await axios({ url: profileUrl, method: "GET", responseType: "stream" });
+        profileResponse.data.pipe(profileWriter);
+        await new Promise((resolve, reject) => { profileWriter.on("finish", resolve); profileWriter.on("error", reject); });
+        attachments.push(fs.createReadStream(profilePath));
+      } catch { profilePath = null; }
+
+      // Cover Photo
+      let coverPath = null;
+      if (coverUrl) {
+        coverPath = path.join(__dirname, `scraped_cover_${Date.now()}.jpg`);
+        const writer = fs.createWriteStream(coverPath);
+        const imgResponse = await axios({ url: coverUrl, method: "GET", responseType: "stream" });
+        imgResponse.data.pipe(writer);
+        await new Promise((resolve, reject) => { writer.on("finish", resolve); writer.on("error", reject); });
+        attachments.push(fs.createReadStream(coverPath));
+      }
+
+      let profileStatus = profilePath ? "✅" : "❌";
+      let coverStatus = coverPath ? "✅" : "❌";
 
       const userData = await usersData.get(targetID);
       const name = userData?.name || "Unknown User";
@@ -122,9 +133,13 @@ module.exports = {
 `;
 
       await api.sendMessage(
-        { body: messageBody, attachment: [fs.createReadStream(profilePath), fs.createReadStream(coverPath)] },
+        { body: messageBody, attachment: attachments },
         threadID,
-        () => { fs.unlinkSync(profilePath); fs.unlinkSync(coverPath); api.setMessageReaction("✅", messageID, () => {}, true); },
+        () => {
+          if (profilePath) fs.unlinkSync(profilePath);
+          if (coverPath) fs.unlinkSync(coverPath);
+          api.setMessageReaction("✅", messageID, () => {}, true);
+        },
         messageID
       );
 

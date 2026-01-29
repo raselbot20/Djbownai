@@ -10,7 +10,7 @@ module.exports = {
     hasPermssion: 0,
     author: "Rasel Mahmud",
     description: "Funny pic with mentioned/replied user's profile, name on top, bigger and moved",
-    commandCategory: "funny",
+    commandCategory: "fun",
     usages: "[mention/reply]",
     cooldowns: 5
   },

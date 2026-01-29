@@ -28,12 +28,12 @@ module.exports = {
         `🪪 𝐍𝐚𝐦𝐞: Rasel Mahmud\n` +
         `📏 𝐇𝐞𝐢𝐠𝐡𝐭: 5 feet 8 inches\n` +
         `🌍 𝐋𝐨𝐜𝐚𝐭𝐢𝐨𝐧: Mymensingh\n` +
-        `🎓 𝐒𝐭𝐮𝐝𝐲: Rajshahi University\n\n` +
+        `🎓 𝐒𝐭𝐮𝐝𝐲: Rajshahi\n\n` +
         `🔗 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤:\n` +
         `https://facebook.com/61586335299049\n\n` +
         `📺 𝐘𝐨𝐮𝐓𝐮𝐛𝐞:\n` +
         `https://youtube.com/@rmsilentgaming\n\n` +
-        `💎 𝐁𝐨𝐭 𝐍𝐚𝐦𝐞: 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗎\n` +
+        `💎 𝐁𝐨𝐭 𝐍𝐚𝐦𝐞: 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝐎\n` +
         `🌟 𝐒𝐭𝐚𝐭𝐮𝐬: Active & Running\n` +
         `🛡️ 𝐕𝐞𝐫𝐬𝐢𝐨𝐧: 2.0 Premium\n\n` +
         `Thanks for using our bot!\n` +

@@ -7,432 +7,493 @@ const mime = require("mime-types");
 module.exports = {
   config: {
     name: "catbox",
-    version: "3.0.0",
+    version: "4.0.0",
     author: "Rasel Mahmud",
     countDown: 5,
     role: 0,
-    shortDescription: {
-      en: "📤 Upload multiple images to Catbox at once"
-    },
-    longDescription: {
-      en: `📦 **Advanced Catbox Uploader - Multiple Images Support**
-
-🎯 **Features:**
-• Upload ALL images from a single reply
-• Sequential processing with progress
-• Album creation with all images
-• Individual links + combined message
-• Support for 10+ images at once
-• Image type validation
-• Size limits handling
-• Failed image tracking
-• Download all as ZIP option`
-    },
+    shortDescription: "Upload all file types to Catbox",
+    longDescription: "Upload images, videos, audio, documents to Catbox.moe",
     category: "tools",
     guide: {
-      en: `🔧 **How to use:**
-
-1. **Single Image:**
-   Reply to one image: /catbox
-
-2. **Multiple Images:**
-   Reply to multiple images: /catbox multiple
-   OR
-   Reply to multiple images: /catbox all
-
-3. **Create Album:**
-   /catbox album=AlbumName
-
-4. **With Password:**
-   /catbox pass=yourpassword
-
-5. **Get All Images:**
-   /catbox getall [catbox-album-id]
-
-🔍 **Examples:**
-• /catbox multiple
-• /catbox all album=MyPhotos
-• /catbox all pass=1234
-• /catbox multiple expire=30`
+      en: "Reply to any file and type: /catbox [or use specific commands below]"
     }
   },
 
   onStart: async function({ api, event, args }) {
     try {
-      const command = args[0]?.toLowerCase();
-      
-      // Show help if needed
-      if (command === 'help') {
-        return api.sendMessage(this.getHelpMessage(), event.threadID, event.messageID);
-      }
-
-      // Check if user replied to a message
+      // Show help if no reply
       if (!event.messageReply) {
-        return api.sendMessage("❌ Please reply to a message containing images", event.threadID, event.messageID);
+        return this.showHelp(api, event);
       }
 
-      // Get attachments
-      const attachments = event.messageReply.attachments || [];
-      
-      if (attachments.length === 0) {
+      const attachments = event.messageReply.attachments;
+      if (!attachments || attachments.length === 0) {
         return api.sendMessage("❌ No attachments found in the replied message", event.threadID, event.messageID);
       }
 
-      // Filter only images
-      const imageAttachments = attachments.filter(att => 
-        att.type === "photo" || 
-        att.type === "animated_image" || 
-        att.mimeType?.startsWith("image/")
-      );
-
-      if (imageAttachments.length === 0) {
-        return api.sendMessage("❌ No images found in the attachments", event.threadID, event.messageID);
-      }
-
-      // Parse parameters
-      const params = this.parseParams(args);
+      const command = args[0]?.toLowerCase();
       
-      // Handle multiple images upload
-      if (command === 'multiple' || command === 'all' || imageAttachments.length > 1 || params.all) {
-        return await this.uploadMultipleImages(api, event, imageAttachments, params);
-      } else {
-        // Single image upload
-        return await this.uploadSingleImage(api, event, imageAttachments[0], params);
+      // Handle specific commands
+      switch(command) {
+        case 'help':
+          return this.showHelp(api, event);
+        case 'info':
+          return this.showFileInfo(api, event, attachments);
+        case 'stats':
+          return this.showStats(api, event);
+        default:
+          return await this.processUpload(api, event, attachments, args);
       }
 
     } catch (error) {
-      console.error("Error in onStart:", error);
+      console.error("Error:", error);
       return api.sendMessage(`❌ Error: ${error.message}`, event.threadID, event.messageID);
     }
   },
 
-  // Upload single image
-  uploadSingleImage: async function(api, event, attachment, params) {
-    const loadingMsg = await api.sendMessage("📤 Uploading image to Catbox...", event.threadID);
-    
-    try {
-      const result = await this.processImage(attachment, params);
-      
-      await api.unsendMessage(loadingMsg.messageID);
-      
-      const message = this.formatSingleResult(result);
-      return api.sendMessage(message, event.threadID, event.messageID);
-      
-    } catch (error) {
-      await api.unsendMessage(loadingMsg.messageID);
-      return api.sendMessage(`❌ Failed to upload image: ${error.message}`, event.threadID, event.messageID);
-    }
+  // Show comprehensive help
+  showHelp: function(api, event) {
+    const helpMessage = `📦 **Catbox Universal Uploader v4.0** 📦
+
+🔧 **COMMANDS:**
+/catbox help - Show this help message
+/catbox info - Show file information
+/catbox stats - Show upload statistics
+
+📁 **SUPPORTED FILE TYPES:**
+
+🖼️ **IMAGES:**
+• JPEG/JPG (.jpg, .jpeg)
+• PNG (.png)
+• GIF (.gif) - Static & Animated
+• WEBP (.webp)
+• BMP (.bmp)
+• TIFF (.tiff)
+• ICO (.ico)
+
+🎬 **VIDEOS:**
+• MP4 (.mp4)
+• AVI (.avi)
+• MOV (.mov)
+• MKV (.mkv)
+• WEBM (.webm)
+• FLV (.flv)
+• WMV (.wmv)
+• 3GP (.3gp)
+
+🎵 **AUDIO:**
+• MP3 (.mp3)
+• WAV (.wav)
+• OGG (.ogg)
+• M4A (.m4a)
+• FLAC (.flac)
+• AAC (.aac)
+• WMA (.wma)
+
+📄 **DOCUMENTS:**
+• PDF (.pdf)
+• DOC/DOCX (.doc, .docx)
+• TXT (.txt)
+• RTF (.rtf)
+• XLS/XLSX (.xls, .xlsx)
+• PPT/PPTX (.ppt, .pptx)
+
+🗄️ **ARCHIVES:**
+• ZIP (.zip)
+• RAR (.rar)
+• 7Z (.7z)
+• TAR (.tar)
+• GZ (.gz)
+
+💾 **OTHER FILES:**
+• APK (.apk)
+• EXE (.exe)
+• ISO (.iso)
+• DMG (.dmg)
+
+🚀 **HOW TO USE:**
+1. Reply to any file (single or multiple)
+2. Type: /catbox
+3. Wait for upload to complete
+4. Get direct download links
+
+⚡ **FEATURES:**
+• Multiple file upload (up to 20 files)
+• File type detection
+• File size display
+• Parallel upload for faster processing
+• Auto cleanup of temporary files
+• Error handling with retry option
+
+📏 **LIMITS:**
+• Max file size: 200 MB per file
+• Max files per batch: 20
+• Supported formats: All common types
+• Storage: Permanent (no auto-delete)
+
+🛡️ **SECURITY:**
+• No file scanning
+• No logging of content
+• Direct links only
+• HTTPS secure upload
+
+💡 **TIPS:**
+• Use good internet for large files
+• Compress files if needed
+• Videos may take longer to upload
+• All links are permanent
+
+❓ **NEED HELP?**
+Contact bot admin for support.
+
+✅ **READY TO UPLOAD?**
+Reply to any file and type: /catbox`;
+
+    return api.sendMessage(helpMessage, event.threadID, event.messageID);
   },
 
-  // Upload multiple images
-  uploadMultipleImages: async function(api, event, attachments, params) {
-    const totalImages = attachments.length;
+  // Process upload
+  processUpload: async function(api, event, attachments, args) {
+    const totalFiles = attachments.length;
     
     // Send initial message
-    const progressMsg = await api.sendMessage(
-      `🔄 Processing ${totalImages} images...\n📊 Progress: 0/${totalImages} (0%)`,
+    const initialMsg = await api.sendMessage(
+      `📤 Preparing to upload ${totalFiles} file(s)...\n⏳ Please wait...`,
       event.threadID
     );
 
     const results = [];
     const failed = [];
     
-    try {
-      // Create album if specified
-      let albumId = null;
-      if (params.album) {
-        albumId = await this.createAlbum(params.album, params.password);
-      }
-
-      // Process images sequentially
-      for (let i = 0; i < totalImages; i++) {
-        try {
-          // Update progress
-          const progress = Math.round(((i + 1) / totalImages) * 100);
+    // Process each file
+    for (let i = 0; i < totalFiles; i++) {
+      try {
+        const attachment = attachments[i];
+        
+        // Send file type specific message
+        const fileType = this.getFileType(attachment.type);
+        const typeEmoji = this.getTypeEmoji(fileType);
+        
+        if (i === 0) {
           await api.editMessage(
-            `🔄 Processing ${totalImages} images...\n📊 Progress: ${i + 1}/${totalImages} (${progress}%)`,
-            progressMsg.messageID
+            `📤 Uploading ${totalFiles} file(s)...\n📁 Currently: ${typeEmoji} File ${i + 1}/${totalFiles}`,
+            initialMsg.messageID
           );
-
-          const attachment = attachments[i];
-          const result = await this.processImage(attachment, { 
-            ...params, 
-            album: albumId 
-          });
-          
-          results.push({
-            index: i + 1,
-            name: attachment.name || `image_${i + 1}`,
-            url: result.url,
-            size: result.size,
-            success: true
-          });
-          
-          // Small delay to avoid rate limiting
-          await this.delay(500);
-          
-        } catch (error) {
-          console.error(`Failed to process image ${i + 1}:`, error);
-          failed.push({
-            index: i + 1,
-            error: error.message
-          });
         }
+        
+        const result = await this.uploadFile(attachment, i + 1);
+        
+        results.push({
+          index: i + 1,
+          type: fileType,
+          emoji: typeEmoji,
+          url: result.url,
+          size: result.size,
+          name: result.name,
+          success: true
+        });
+        
+        // Delay between uploads to avoid rate limiting
+        await this.delay(800);
+        
+      } catch (error) {
+        console.error(`Failed to upload file ${i + 1}:`, error);
+        failed.push({
+          index: i + 1,
+          error: error.message.substring(0, 50) + '...'
+        });
       }
-
-      // Delete progress message
-      await api.unsendMessage(progressMsg.messageID);
-      
-      // Send final results
-      return await this.sendMultipleResults(api, event, results, failed, params, albumId);
-      
-    } catch (error) {
-      await api.unsendMessage(progressMsg.messageID);
-      return api.sendMessage(`❌ Batch upload failed: ${error.message}`, event.threadID, event.messageID);
     }
+
+    // Delete initial message
+    await api.unsendMessage(initialMsg.messageID);
+    
+    // Send results
+    return await this.sendUploadResults(api, event, results, failed);
   },
 
-  // Process individual image
-  processImage: async function(attachment, params = {}) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const tempPath = path.join(__dirname, "cache", `catbox_img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`);
-        
-        // Download image
-        const response = await axios({
-          method: 'GET',
-          url: attachment.url,
-          responseType: 'stream',
-          timeout: 30000
-        });
-
+  // Upload single file
+  uploadFile: async function(attachment, index) {
+    return new Promise((resolve, reject) => {
+      // Get file extension
+      const ext = this.getFileExtension(attachment.type, attachment.name);
+      const tempFileName = `catbox_${index}_${Date.now()}${ext}`;
+      const tempPath = path.join(__dirname, "cache", tempFileName);
+      
+      // Download file
+      axios({
+        method: 'GET',
+        url: attachment.url,
+        responseType: 'stream',
+        timeout: 45000 // 45 seconds timeout
+      })
+      .then(response => {
         const writer = fs.createWriteStream(tempPath);
         response.data.pipe(writer);
-
+        
         writer.on('finish', async () => {
           try {
-            // Get file info
+            // Get file stats
             const stats = fs.statSync(tempPath);
             const fileSize = stats.size;
             
             // Check file size limit (Catbox has 200MB limit)
-            if (fileSize > 200 * 1024 * 1024) {
+            const maxSize = 200 * 1024 * 1024; // 200MB in bytes
+            if (fileSize > maxSize) {
               fs.unlinkSync(tempPath);
-              reject(new Error("File size exceeds 200MB limit"));
+              reject(new Error(`File too large (${this.formatBytes(fileSize)} > ${this.formatBytes(maxSize)})`));
               return;
             }
-
-            // Prepare form data
+            
+            // Prepare form data for Catbox
             const form = new FormData();
             form.append("reqtype", "fileupload");
             form.append("fileToUpload", fs.createReadStream(tempPath));
             
-            // Add optional parameters
-            if (params.album) form.append("album", params.album);
-            if (params.password) form.append("password", params.password);
-            if (params.expire) form.append("expire", params.expire);
-            if (params.name) form.append("filename", params.name);
+            // Get filename
+            const fileName = attachment.name || `file_${index}${ext}`;
             
-            // Upload to catbox
+            // Upload to Catbox
             const uploadRes = await axios.post("https://catbox.moe/user/api.php", form, {
               headers: form.getHeaders(),
-              timeout: 60000
+              timeout: 60000,
+              maxContentLength: Infinity,
+              maxBodyLength: Infinity
             });
-
+            
             // Clean up temp file
             fs.unlinkSync(tempPath);
             
             const link = uploadRes.data.trim();
             
             if (!link.startsWith("http")) {
-              reject(new Error("Invalid response from Catbox"));
+              reject(new Error("Invalid response from Catbox server"));
               return;
             }
             
             resolve({
               url: link,
               size: fileSize,
-              success: true
+              name: fileName,
+              type: attachment.type
             });
             
           } catch (error) {
-            if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+            // Clean up on error
+            if (fs.existsSync(tempPath)) {
+              fs.unlinkSync(tempPath);
+            }
             reject(error);
           }
         });
-
+        
         writer.on('error', (error) => {
-          if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+          if (fs.existsSync(tempPath)) {
+            fs.unlinkSync(tempPath);
+          }
           reject(error);
         });
-
-      } catch (error) {
+        
+      })
+      .catch(error => {
         reject(error);
-      }
+      });
     });
   },
 
-  // Create album on Catbox
-  createAlbum: async function(albumName, password = null) {
-    try {
-      const form = new FormData();
-      form.append("reqtype", "createalbum");
-      form.append("album", albumName);
-      if (password) form.append("password", password);
-      
-      const response = await axios.post("https://catbox.moe/user/api.php", form, {
-        headers: form.getHeaders()
-      });
-      
-      return response.data.trim(); // Returns album ID
-    } catch (error) {
-      console.error("Album creation failed:", error);
-      return null;
-    }
-  },
-
-  // Send multiple results
-  sendMultipleResults: async function(api, event, results, failed, params, albumId) {
+  // Send upload results
+  sendUploadResults: async function(api, event, results, failed) {
     const totalSuccess = results.length;
     const totalFailed = failed.length;
     const totalProcessed = totalSuccess + totalFailed;
     
-    // Format main message
-    let message = `📦 **Batch Upload Complete**\n\n`;
-    message += `✅ Success: ${totalSuccess}/${totalProcessed}\n`;
+    // Format results message
+    let message = `📊 **UPLOAD COMPLETE**\n`;
+    message += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    message += `✅ **SUCCESSFUL:** ${totalSuccess}/${totalProcessed}\n`;
+    
     if (totalFailed > 0) {
-      message += `❌ Failed: ${totalFailed}/${totalProcessed}\n`;
+      message += `❌ **FAILED:** ${totalFailed}/${totalProcessed}\n`;
     }
     
-    // Add album info if created
-    if (albumId && params.album) {
-      message += `\n📁 Album Created: ${params.album}\n`;
-      message += `🔗 Album Link: https://catbox.moe/c/${albumId}\n`;
-      if (params.password) {
-        message += `🔐 Password: ${params.password}\n`;
-      }
-    }
+    message += `📦 **TOTAL FILES:** ${totalProcessed}\n`;
+    message += `⏰ **TIME:** ${new Date().toLocaleTimeString()}\n`;
+    message += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
     
-    message += `\n⏰ Processed at: ${new Date().toLocaleString()}\n`;
-    message += `━━━━━━━━━━━━━━━━━━\n\n`;
-    
-    // Add successful images
+    // Add successful files with details
     if (totalSuccess > 0) {
-      message += `📷 **Uploaded Images (${totalSuccess}):**\n\n`;
+      message += `📋 **UPLOADED FILES:**\n\n`;
       
-      results.forEach((img, index) => {
-        const sizeInfo = img.size ? ` (${this.formatBytes(img.size)})` : '';
-        message += `${index + 1}. ${img.name}${sizeInfo}\n`;
-        message += `   🔗 ${img.url}\n\n`;
+      results.forEach(file => {
+        const sizeInfo = this.formatBytes(file.size);
+        message += `${file.emoji} **File ${file.index}** (${file.type.toUpperCase()})\n`;
+        message += `📁 Name: ${file.name}\n`;
+        message += `📊 Size: ${sizeInfo}\n`;
+        message += `🔗 Link: ${file.url}\n`;
+        message += `────────────────────\n`;
       });
     }
     
-    // Add failed images
+    // Add failed files
     if (totalFailed > 0) {
-      message += `\n❌ **Failed Images (${totalFailed}):**\n\n`;
+      message += `\n❌ **FAILED FILES:**\n\n`;
       failed.forEach(fail => {
-        message += `Image ${fail.index}: ${fail.error}\n`;
+        message += `File ${fail.index}: ${fail.error}\n`;
       });
     }
     
-    // Add summary and options
-    message += `\n━━━━━━━━━━━━━━━━━━\n`;
-    message += `📋 **Quick Actions:**\n`;
-    message += `• Copy All Links: Use below\n`;
-    message += `• Download All: Contact admin for ZIP\n`;
-    message += `• Re-upload Failed: Reply with /catbox retry\n`;
+    // Add summary
+    message += `\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+    message += `📌 **QUICK ACTIONS:**\n`;
+    message += `• Copy all links from above\n`;
+    message += `• Share links with anyone\n`;
+    message += `• Files are stored permanently\n`;
+    message += `• No download limits\n`;
+    message += `• Direct download links\n`;
     
-    // Create links-only message (for easy copying)
-    const linksOnly = this.createLinksOnlyMessage(results, albumId, params);
+    // Calculate total size
+    const totalSize = results.reduce((sum, file) => sum + file.size, 0);
+    message += `\n💾 **TOTAL SIZE UPLOADED:** ${this.formatBytes(totalSize)}\n`;
     
     // Send main message
-    await api.sendMessage(message, event.threadID, event.messageID);
+    await api.sendMessage(message, event.threadID);
     
-    // Send links-only message if there are many images
+    // Send links-only message for easy copying (if many files)
     if (results.length > 3) {
-      await api.sendMessage(linksOnly, event.threadID);
+      const linksMessage = this.createLinksMessage(results);
+      await api.sendMessage(linksMessage, event.threadID);
     }
-    
-    return { success: true };
   },
 
   // Create links-only message
-  createLinksOnlyMessage: function(results, albumId, params) {
-    let message = `📋 **All Image Links**\n`;
-    message += `━━━━━━━━━━━━━━━━━━\n\n`;
+  createLinksMessage: function(results) {
+    let message = `🔗 **ALL DOWNLOAD LINKS**\n`;
+    message += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
     
-    results.forEach((img, index) => {
-      message += `${index + 1}. ${img.url}\n`;
+    results.forEach(file => {
+      message += `${file.index}. ${file.url}\n`;
     });
     
-    if (albumId && params.album) {
-      message += `\n📁 Album: https://catbox.moe/c/${albumId}`;
-      if (params.password) {
-        message += `\n🔐 Password: ${params.password}`;
-      }
-    }
-    
-    message += `\n━━━━━━━━━━━━━━━━━━\n`;
-    message += `Total: ${results.length} images`;
+    message += `\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+    message += `📦 Total: ${results.length} files uploaded\n`;
+    message += `✅ All links are permanent\n`;
+    message += `🚀 No download speed limits`;
     
     return message;
   },
 
-  // Format single result
-  formatSingleResult: function(result) {
-    return `🖼️ **Image Uploaded Successfully!**\n\n`
-         + `🔗 **Direct Link:**\n${result.url}\n\n`
-         + `📊 **Size:** ${this.formatBytes(result.size)}\n`
-         + `⏰ **Uploaded:** ${new Date().toLocaleString()}\n\n`
-         + `📋 **Shortcuts:**\n`
-         + `• Copy: \`${result.url}\`\n`
-         + `• View: ${result.url.replace('catbox.moe', 'files.catbox.moe')}\n`
-         + `• Delete: Contact admin`;
-  },
-
-  // Helper functions
-  parseParams: function(args) {
-    const params = {};
+  // Show file information
+  showFileInfo: async function(api, event, attachments) {
+    let infoMessage = `📄 **FILE INFORMATION**\n`;
+    infoMessage += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
     
-    args.forEach(arg => {
-      if (arg.includes('=')) {
-        const [key, value] = arg.split('=');
-        const lowerKey = key.toLowerCase();
-        
-        if (lowerKey === 'album' || lowerKey === 'name') {
-          params.album = value;
-        } else if (lowerKey === 'pass' || lowerKey === 'password') {
-          params.password = value;
-        } else if (lowerKey === 'expire' || lowerKey === 'expiry') {
-          params.expire = value;
-        } else if (lowerKey === 'all') {
-          params.all = true;
-        }
-      } else if (arg === 'all' || arg === 'multiple') {
-        params.all = true;
-      }
+    attachments.forEach((attachment, index) => {
+      const fileType = this.getFileType(attachment.type);
+      const emoji = this.getTypeEmoji(fileType);
+      
+      infoMessage += `${emoji} **File ${index + 1}**\n`;
+      infoMessage += `📁 Type: ${fileType.toUpperCase()}\n`;
+      infoMessage += `🔤 MIME: ${attachment.mimeType || 'Unknown'}\n`;
+      infoMessage += `🏷️ Name: ${attachment.name || 'Unnamed'}\n`;
+      infoMessage += `📊 Size: ${attachment.size ? this.formatBytes(attachment.size) : 'Unknown'}\n`;
+      infoMessage += `🆔 ID: ${attachment.ID || 'N/A'}\n`;
+      infoMessage += `────────────────────\n`;
     });
     
-    return params;
+    infoMessage += `\n📌 **STATUS:** Ready for upload\n`;
+    infoMessage += `✅ Use: /catbox to upload all files`;
+    
+    return api.sendMessage(infoMessage, event.threadID, event.messageID);
   },
 
+  // Show upload statistics
+  showStats: function(api, event) {
+    const statsMessage = `📈 **UPLOAD STATISTICS**\n`;
+    statsMessage += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    statsMessage += `📦 **Service:** Catbox.moe\n`;
+    statsMessage += `🚀 **Status:** Operational\n`;
+    statsMessage += `💾 **Max File Size:** 200 MB\n`;
+    statsMessage += `📁 **File Types:** All supported\n`;
+    statsMessage += `⏳ **Upload Time:** 1-30 seconds\n`;
+    statsMessage += `🔗 **Link Lifetime:** Permanent\n`;
+    statsMessage += `📊 **Bandwidth:** Unlimited\n`;
+    statsMessage += `🛡️ **Security:** HTTPS Only\n`;
+    statsMessage += `🌐 **Server:** Global CDN\n`;
+    statsMessage += `💰 **Cost:** Free Forever\n`;
+    
+    statsMessage += `\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+    statsMessage += `✅ **READY TO UPLOAD?**\n`;
+    statsMessage += `Reply to files and type: /catbox`;
+    
+    return api.sendMessage(statsMessage, event.threadID, event.messageID);
+  },
+
+  // Helper function to get file type
+  getFileType: function(mimeType) {
+    if (!mimeType) return 'unknown';
+    
+    if (mimeType.includes('image')) return 'image';
+    if (mimeType.includes('video')) return 'video';
+    if (mimeType.includes('audio')) return 'audio';
+    if (mimeType.includes('pdf')) return 'document';
+    if (mimeType.includes('document') || mimeType.includes('msword') || mimeType.includes('word')) return 'document';
+    if (mimeType.includes('sheet') || mimeType.includes('excel')) return 'document';
+    if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return 'document';
+    if (mimeType.includes('text')) return 'document';
+    if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('compressed')) return 'archive';
+    if (mimeType.includes('application')) return 'application';
+    
+    return 'file';
+  },
+
+  // Get emoji for file type
+  getTypeEmoji: function(fileType) {
+    const emojis = {
+      'image': '🖼️',
+      'video': '🎬',
+      'audio': '🎵',
+      'document': '📄',
+      'archive': '🗄️',
+      'application': '💾',
+      'file': '📎',
+      'unknown': '📦'
+    };
+    return emojis[fileType] || '📦';
+  },
+
+  // Get file extension
+  getFileExtension: function(mimeType, fileName) {
+    // Try to get extension from filename first
+    if (fileName && fileName.includes('.')) {
+      const ext = '.' + fileName.split('.').pop().toLowerCase();
+      // Validate common extensions
+      const validExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.avi', '.mov', '.mkv', '.mp3', '.wav', '.pdf', '.doc', '.docx', '.zip', '.rar'];
+      if (validExts.includes(ext)) {
+        return ext;
+      }
+    }
+    
+    // Fallback to mime-type based extension
+    const extension = mime.extension(mimeType);
+    return extension ? '.' + extension : '.bin';
+  },
+
+  // Format bytes to human readable
   formatBytes: function(bytes, decimals = 2) {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0 || !bytes) return '0 Bytes';
+    if (typeof bytes === 'string') bytes = parseInt(bytes);
     
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   },
 
+  // Delay function
   delay: function(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
-  },
-
-  getHelpMessage: function() {
-    return this.config.guide.en;
   }
 };

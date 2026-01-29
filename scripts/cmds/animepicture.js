@@ -6,7 +6,7 @@ module.exports = {
   config: {
     name: "animepicture",
     aliases: ["animepic", "ap"],
-    version: "1.0",
+    version: "1.1",
     author: "Rasel Mahmud",
     countDown: 3,
     role: 0,
@@ -18,7 +18,7 @@ module.exports = {
   onStart: async function({ api, event }) {
     const { threadID, messageID } = event;
 
-    // ============= ALL IMAGE LINKS =============
+    // ✅ ALL IMAGE LINKS (FIXED & CLEAN)
     const images = [
       "https://files.catbox.moe/wfngzy.jpg",
       "https://files.catbox.moe/1xdv8z.jpg",
@@ -26,7 +26,7 @@ module.exports = {
       "https://files.catbox.moe/et8m45.jpg",
       "https://files.catbox.moe/pjxmue.jpg",
       "https://files.catbox.moe/7kndmf.jpg",
-      "https://files.catbox.moe/o8cgcm.jpg", // FIXED: Added https://
+      "https://files.catbox.moe/o8cgcm.jpg",
       "https://files.catbox.moe/2nd2gq.jpg",
       "https://files.catbox.moe/ohqfdz.jpg",
       "https://files.catbox.moe/z129vp.jpg",
@@ -58,110 +58,66 @@ module.exports = {
       "https://files.catbox.moe/qkpqy8.jpg",
       "https://files.catbox.moe/qbdyrr.jpg",
       "https://files.catbox.moe/rvmbip.jpg",
+      "https://files.catbox.moe/37gypi.jpg",
+      "https://files.catbox.moe/ohs60q.jpg",
+      "https://files.catbox.moe/2czm0r.jpg",
+      "https://files.catbox.moe/xj5mmk.jpg",
+      "https://files.catbox.moe/mpo552.jpg",
+      "https://files.catbox.moe/szmfk6.jpg",
+      "https://files.catbox.moe/o7sa1g.jpg",
+      "https://files.catbox.moe/7iie36.jpg",
+      "https://files.catbox.moe/o3xqgu.jpg",
+      "https://files.catbox.moe/8kqkv3.jpg",
+      "https://files.catbox.moe/jcuyc9.jpg",
+      "https://files.catbox.moe/isx1e1.jpg",
+      "https://files.catbox.moe/m2gxmx.jpg",
+      "https://files.catbox.moe/t5u0bb.jpg",
+      "https://files.catbox.moe/ona5lr.jpg",
+      "https://files.catbox.moe/7pyujd.jpg",
+      "https://files.catbox.moe/8qs8jo.jpg",
+      "https://files.catbox.moe/ow5c73.jpg",
+			"https://files.catbox.moe/coc4vt.jpg",
+      "https://files.catbox.moe/tzckhc.jpg"
     ];
 
     try {
-      // ==== RANDOM IMAGE SELECTION ====
       const randomImage = images[Math.floor(Math.random() * images.length)];
-      const filePath = path.join(__dirname, `ap_image_${Date.now()}.jpg`);
-      
-      // Get Bangladesh time (UTC+6)
-      const bangladeshTime = new Date();
-      bangladeshTime.setHours(bangladeshTime.getHours() + 6); // UTC+6
-      const timeString = bangladeshTime.toLocaleTimeString('en-BD', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-      });
-      
-      // Get date in Bangladesh format
-      const dateString = bangladeshTime.toLocaleDateString('en-BD', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+      const filePath = path.join(__dirname, `anime_${Date.now()}.jpg`);
+
+      const now = new Date();
+      const timeString = now.toLocaleTimeString("en-BD", { hour12: true });
+      const dateString = now.toLocaleDateString("en-BD", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
       });
 
-      // Create message body with Bangladesh time
-      const messageBody = 
-        `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n` +
-        `✅ Anime Picture Request\n\n` +
-        `📦 Total Images: ${images.length}\n` +
-        `📊 Status: ✅ Successfully Sent\n\n` +
-        `🌏 Location: Bangladesh (UTC+6)\n` +
-        `📅 Date: ${dateString}\n` +
-        `⏰ Time: ${timeString}\n` +
-        `🔗 Image: ${randomImage.split('/').pop()}\n\n` +
-        `🎨 Category: Anime Art\n` +
-        `👑 Owner: 𝐑𝐚𝐬𝐞𝐥 𝐌𝐚𝐡𝐦𝐮𝐝\n` +
-        `🔗 Profile: https://www.facebook.com/share/1AcArr1zGL/\n` +
-        `╚═══════════════════╝`;
+      const messageBody =
+`╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗
+✅ Anime Picture Request
 
-      // ==== DOWNLOAD IMAGE ====
-      const response = await axios({
-        url: randomImage,
-        method: "GET",
-        responseType: "stream",
-        timeout: 15000, // 15 seconds timeout
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
+📦 Total Images: ${images.length}
+🎯 Status: Success ✅
 
-      const writer = fs.createWriteStream(filePath);
-      response.data.pipe(writer);
+📅 Date: ${dateString}
+⏰ Time: ${timeString}
+🖼️ Image: ${randomImage.split("/").pop()}
 
-      await new Promise((resolve, reject) => {
-        writer.on("finish", resolve);
-        writer.on("error", reject);
-      });
+🎨 Category: Anime
+👑 Owner: Rasel Mahmud
+╚═══════════════════╝`;
 
-      // ==== SEND MESSAGE ====
+      const response = await axios.get(randomImage, { responseType: "arraybuffer" });
+      fs.writeFileSync(filePath, Buffer.from(response.data));
+
       await api.sendMessage({
         body: messageBody,
         attachment: fs.createReadStream(filePath)
-      }, threadID, (err) => {
-        // Clean up file after sending
-        try {
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        } catch (cleanupError) {
-          console.error("Cleanup error:", cleanupError);
-        }
-        
-        if (err) {
-          console.error("Send message error:", err);
-        }
-      }, messageID);
+      }, threadID, () => fs.unlinkSync(filePath), messageID);
 
     } catch (error) {
-      console.error("❌ Error:", error);
-      
-      // Get Bangladesh time for error message
-      const bangladeshTime = new Date();
-      bangladeshTime.setHours(bangladeshTime.getHours() + 6);
-      const errorTimeString = bangladeshTime.toLocaleTimeString('en-BD', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
-      
-      // Error message with box design and Bangladesh time
-      const errorMessage = 
-        `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n` +
-        `❌ Error: Failed to send image\n\n` +
-        `⚠️ Issue: ${error.message || "Unknown error"}\n` +
-        `🌏 Location: Bangladesh (UTC+6)\n` +
-        `⏰ Time: ${errorTimeString}\n\n` +
-        `🔄 Status: ❌ Failed\n` +
-        `📊 Solution: Try again later\n\n` +
-        `👑 Owner: 𝐑𝐚𝐬𝐞𝐥 𝐌𝐚𝐡𝐦𝐮𝐝\n` +
-        `🔗 Profile: https://www.facebook.com/share/1AcArr1zGL/\n` +
-        `╚═══════════════════╝`;
-      
-      return api.sendMessage(errorMessage, threadID, messageID);
+      return api.sendMessage("❌ Error sending anime image!", threadID, messageID);
     }
   }
 };

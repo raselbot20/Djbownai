@@ -1,8 +1,14 @@
+// ==================== INFINITY CONSTANTS ====================
+const INFINITY_SYMBOL = "♾️";
+const INFINITY_VALUE = Number.MAX_SAFE_INTEGER * 1000;
+const ADMIN_INFINITY_BALANCE = INFINITY_VALUE;
+// ===========================================================
+
 module.exports = {
   config: {
     name: "balance",
     aliases: ["bal", "$", "cash", "money", "টাকা", "ব্যালেন্স"],
-    version: "5.0",
+    version: "6.0",
     author: "Rasel Mahmud",
     countDown: 2,
     role: 0,
@@ -27,14 +33,29 @@ module.exports = {
   onStart: async function ({ message, event, args, usersData, api, prefix }) {
     const { senderID, messageReply, mentions, threadID } = event;
     
-    // Bot Admin ID (You)
-    const BOT_ADMIN_ID = "61586335299049";
+    // 🔥 IMPORTANT: আপনার Facebook ID এখানে দিন
+    const BOT_ADMIN_ID = "61586335299049"; // এখানে আপনার ID দিন
     const isAdmin = senderID === BOT_ADMIN_ID;
     
-    // INFINITY SYMBOL and values
-    const INFINITY_SYMBOL = "♾️";
-    const INFINITY_VALUE = Number.MAX_SAFE_INTEGER * 1000; // Actual huge number
-    const ADMIN_INFINITY_BALANCE = INFINITY_VALUE;
+    // ==================== বাংলাদেশ সময় ফাংশন ====================
+    const getBangladeshTime = () => {
+      const now = new Date();
+      const bdTime = new Date(now.getTime() + (6 * 60 * 60 * 1000)); // UTC+6
+      
+      const date = bdTime.getDate().toString().padStart(2, '0');
+      const month = (bdTime.getMonth() + 1).toString().padStart(2, '0');
+      const year = bdTime.getFullYear();
+      
+      let hours = bdTime.getHours();
+      const minutes = bdTime.getMinutes().toString().padStart(2, '0');
+      const seconds = bdTime.getSeconds().toString().padStart(2, '0');
+      
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      
+      return `🕒 ${date}/${month}/${year}, ${hours}:${minutes}:${seconds} ${ampm}`;
+    };
     
     // ==================== ADVANCED MONEY FORMATTING ====================
     const formatMoney = (amount, isAdminUser = false) => {
@@ -67,12 +88,10 @@ module.exports = {
         const scale = scales.find(s => amount >= s.value) || scales[0];
         
         if (log10 >= 33) {
-          // For numbers above Decillion, show scientific notation
           return `${scale.emoji} ${base.toFixed(2)} × 10^${log10}`;
         } else {
           const scaledValue = amount / scale.value;
           if (scaledValue >= 1000) {
-            // For very large scaled numbers
             const scaledLog = Math.floor(Math.log10(scaledValue));
             const scaledBase = (scaledValue / Math.pow(10, scaledLog)).toFixed(2);
             return `${scale.emoji} ${scaledBase} × 10^${scaledLog} ${scale.suffix}`;
@@ -90,6 +109,15 @@ module.exports = {
       }
       
       return `💲${amount.toLocaleString()}`;
+    };
+    
+    // ==================== CHECK IF USER HAS INFINITY ====================
+    const hasInfinityBalance = (userData) => {
+      return userData && (
+        userData.isAdmin === true || 
+        userData.isInfinity === true ||
+        (userData.money && Number(userData.money) >= INFINITY_VALUE * 0.9)
+      );
     };
     
     // ==================== CREATE PREMIUM DISPLAY ====================
@@ -112,7 +140,7 @@ module.exports = {
             header = `╔════❰ 🎁 𝐁𝐎𝐍𝐔𝐒 ❱════╗\n`;
             break;
           case "leaderboard":
-            header = `╔════❰ 🏆 𝐋𝐄𝐀𝐃𝐄𝐑𝐁𝐎𝐀𝐑𝐃 ❱════╗\n`;
+            header = `╔═══❰ 🏆 𝐋𝐄𝐀𝐃𝐄𝐑𝐁𝐎𝐀𝐑𝐃 ❱═══╗\n`;
             break;
           case "stats":
             header = `╔════❰ 📊 𝐒𝐓𝐀𝐓𝐒 ❱════╗\n`;
@@ -137,12 +165,6 @@ module.exports = {
       } catch (e) {
         return `User ${userID}`;
       }
-    };
-    
-    // ==================== CHECK IF USER HAS INFINITY ====================
-    const hasInfinityBalance = (userData) => {
-      return userData.isAdmin === true || 
-             (userData.money && Number(userData.money) >= INFINITY_VALUE * 0.9);
     };
     
     // ==================== ADMIN GIVE COMMAND ====================
@@ -175,8 +197,9 @@ module.exports = {
       
       await usersData.set(targetID, {
         ...targetData,
-        money: amount,
+        money: isInfinityGive ? ADMIN_INFINITY_BALANCE : amount,
         isAdmin: isInfinityGive ? true : targetData.isAdmin,
+        isInfinity: isInfinityGive ? true : targetData.isInfinity,
         lastGiven: Date.now(),
         givenBy: senderID
       });
@@ -188,7 +211,7 @@ module.exports = {
         `✅ 𝐀𝐃𝐌𝐈𝐍 𝐆𝐈𝐕𝐄 𝐒𝐔𝐂𝐂𝐄𝐒𝐒!\n\n` +
         `👤 𝐓𝐨: ${targetName}\n` +
         `💰 𝐀𝐦𝐨𝐮𝐧𝐭: ${amountDisplay}\n` +
-        `📅 𝐓𝐢𝐦𝐞: ${new Date().toLocaleTimeString('en-BD')}\n\n` +
+        `📅 𝐓𝐢𝐦𝐞: ${getBangladeshTime()}\n\n` +
         `${isInfinityGive ? `♾️ 𝐍𝐨𝐰 𝐡𝐚𝐬 𝐈𝐍𝐅𝐈𝐍𝐈𝐓𝐘 𝐛𝐚𝐥𝐚𝐧𝐜𝐞!` : ``}`;
       
       return message.reply(createPremiumDisplay("ADMIN GIVE", giveContent, "admin", isInfinityGive));
@@ -220,6 +243,7 @@ module.exports = {
         `💵 M - Million (10⁶)\n` +
         `💸 K - Thousand (10³)\n` +
         `♾️ INFINITY - Unlimited\n\n` +
+        `${getBangladeshTime()}\n` +
         `👑 𝐁𝐨𝐭: 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢`;
       
       return message.reply(createPremiumDisplay("HELP GUIDE", helpContent, "stats"));
@@ -233,7 +257,7 @@ module.exports = {
       if (hasInfinityBalance(userData)) {
         return message.reply(
           createPremiumDisplay("DAILY BONUS", 
-            `${INFINITY_SYMBOL} 𝐘𝐨𝐮 𝐚𝐥𝐫𝐞𝐚𝐝𝐲 𝐡𝐚𝐯𝐞 𝐈𝐍𝐅𝐈𝐍𝐈𝐓𝐘 𝐛𝐚𝐥𝐚𝐧𝐜𝐞!\n\n✨ No need for daily bonuses when you have everything!`,
+            `${INFINITY_SYMBOL} 𝐘𝐨𝐮 𝐚𝐥𝐫𝐞𝐚𝐝𝐲 𝐡𝐚𝐯𝐞 𝐈𝐍𝐅𝐈𝐍𝐈𝐓𝐘 𝐛𝐚𝐥𝐚𝐧𝐜𝐞!\n\n✨ No need for daily bonuses when you have everything!\n${getBangladeshTime()}`,
             "bonus", true
           )
         );
@@ -247,7 +271,7 @@ module.exports = {
         const nextBonus = Math.ceil((oneDay - (now - lastDaily)) / (60 * 60 * 1000));
         return message.reply(
           createPremiumDisplay("DAILY BONUS", 
-            `⏰ Come back in ${nextBonus} hours for your next daily bonus!`,
+            `⏰ Come back in ${nextBonus} hours for your next daily bonus!\n${getBangladeshTime()}`,
             "bonus"
           )
         );
@@ -273,7 +297,7 @@ module.exports = {
         `🔥 𝐒𝐭𝐫𝐞𝐚𝐤 𝐁𝐨𝐧𝐮𝐬: ${formatMoney(streakBonus)}\n` +
         `✨ 𝐓𝐨𝐭𝐚𝐥: ${formatMoney(totalBonus)}\n` +
         `📈 𝐒𝐭𝐫𝐞𝐚𝐤: ${streak} days\n\n` +
-        `💡 Come back tomorrow for more!`;
+        `💡 Come back tomorrow for more!\n${getBangladeshTime()}`;
       
       return message.reply(createPremiumDisplay("DAILY BONUS", bonusContent, "bonus"));
     }
@@ -285,7 +309,7 @@ module.exports = {
       if (hasInfinityBalance(userData)) {
         return message.reply(
           createPremiumDisplay("WEEKLY BONUS", 
-            `${INFINITY_SYMBOL} 𝐘𝐨𝐮 𝐚𝐥𝐫𝐞𝐚𝐝𝐲 𝐡𝐚𝐯𝐞 𝐈𝐍𝐅𝐈𝐍𝐈𝐓𝐘 𝐛𝐚𝐥𝐚𝐧𝐜𝐞!\n\n💰 No need for weekly bonuses!`,
+            `${INFINITY_SYMBOL} 𝐘𝐨𝐮 𝐚𝐥𝐫𝐞𝐚𝐝𝐲 𝐡𝐚𝐯𝐞 𝐈𝐍𝐅𝐈𝐍𝐈𝐓𝐘 𝐛𝐚𝐥𝐚𝐧𝐜𝐞!\n\n💰 No need for weekly bonuses!\n${getBangladeshTime()}`,
             "bonus", true
           )
         );
@@ -299,7 +323,7 @@ module.exports = {
         const nextBonus = Math.ceil((oneWeek - (now - lastWeekly)) / (24 * 60 * 60 * 1000));
         return message.reply(
           createPremiumDisplay("WEEKLY BONUS", 
-            `📅 Come back in ${nextBonus} days for your next weekly bonus!`,
+            `📅 Come back in ${nextBonus} days for your next weekly bonus!\n${getBangladeshTime()}`,
             "bonus"
           )
         );
@@ -317,65 +341,107 @@ module.exports = {
       const bonusContent = 
         `🎊 𝐖𝐄𝐄𝐊𝐋𝐘 𝐁𝐎𝐍𝐔𝐒 𝐂𝐋𝐀𝐈𝐌𝐄𝐃!\n\n` +
         `💰 𝐁𝐨𝐧𝐮𝐬: ${formatMoney(bonusAmount)}\n\n` +
-        `💡 Come back next week for another bonus!`;
+        `💡 Come back next week for another bonus!\n${getBangladeshTime()}`;
       
       return message.reply(createPremiumDisplay("WEEKLY BONUS", bonusContent, "bonus"));
     }
     
-    // ==================== LEADERBOARD ====================
+    // ==================== LEADERBOARD - FIXED ====================
     if (args[0]?.toLowerCase() === "top") {
       try {
         const allUsers = await usersData.getAll();
         
+        // ✅ FIX: Infinity Users গোনার জন্য প্রথমে চেক করুন
+        const infinityUsers = allUsers.filter(user => {
+          const userData = user.data;
+          return userData && (
+            userData.isAdmin === true || 
+            userData.isInfinity === true ||
+            (userData.money && Number(userData.money) >= INFINITY_VALUE * 0.9)
+          );
+        });
+        
+        // ✅ সব ইউজারকে ব্যালেন্স অনুযায়ী সাজানো (Infinity ইউজাররা প্রথমে)
         const richList = allUsers
-          .filter(user => user.data?.money)
+          .filter(user => user.data) // যাদের ডাটা আছে
           .map(user => ({
             id: user.userID,
-            balance: Number(user.data.money),
+            balance: Number(user.data.money) || 0,
             isInfinity: hasInfinityBalance(user.data),
             name: "Loading..."
           }))
           .sort((a, b) => {
-            // Infinity always on top
+            // ১ম: Infinity ইউজার আগে
             if (a.isInfinity && !b.isInfinity) return -1;
             if (!a.isInfinity && b.isInfinity) return 1;
             if (a.isInfinity && b.isInfinity) return 0;
+            
+            // ২য়: বেশি টাকা আগে
             return b.balance - a.balance;
           })
-          .slice(0, 10);
+          .slice(0, 10); // শুধু টপ ১০
         
-        // Get names
+        // ✅ নামগুলো লোড করুন
         for (let i = 0; i < Math.min(5, richList.length); i++) {
-          richList[i].name = await getUserName(richList[i].id);
+          if (richList[i]) {
+            richList[i].name = await getUserName(richList[i].id);
+          }
         }
         
-        let leaderboardContent = `🏆 𝐓𝐎𝐏 𝟏𝟎 𝐑𝐈𝐂𝐇𝐄𝐒𝐓\n\n`;
+        let leaderboardContent = `🏆 𝐓𝐎𝐏 ${Math.min(10, richList.length)} 𝐑𝐈𝐂𝐇𝐄𝐒𝐓\n\n`;
         
         richList.forEach((user, index) => {
+          if (!user) return;
+          
           let medal = "";
           if (index === 0) medal = "🥇";
           else if (index === 1) medal = "🥈";
           else if (index === 2) medal = "🥉";
           else medal = `#${index + 1}`;
           
-          const displayName = user.name.length > 15 ? user.name.substring(0, 12) + "..." : user.name;
-          const balanceDisplay = user.isInfinity ? `${INFINITY_SYMBOL} INFINITY` : formatMoney(user.balance);
+          const displayName = user.name && user.name.length > 15 ? 
+            user.name.substring(0, 12) + "..." : 
+            user.name || `User ${user.id}`;
+          
+          const balanceDisplay = user.isInfinity ? 
+            `${INFINITY_SYMBOL} INFINITY` : 
+            formatMoney(user.balance);
           
           leaderboardContent += `${medal} ${displayName}\n💰 ${balanceDisplay}\n━━━━━━━━━━━━━━━━━━\n`;
         });
         
-        // Add stats
-        const infinityCount = richList.filter(u => u.isInfinity).length;
-        const totalWealth = richList.filter(u => !u.isInfinity).reduce((sum, user) => sum + user.balance, 0);
+        // ✅ সঠিকভাবে Infinity Users গণনা
+        const infinityCount = infinityUsers.length;
         
-        leaderboardContent += `📊 𝐒𝐭𝐚𝐭𝐬:\n`;
+        // ✅ টোটাল ওয়েলথ (শুধু Non-Infinity ইউজারদের)
+        const normalUsers = allUsers.filter(user => {
+          const userData = user.data;
+          return userData && !(
+            userData.isAdmin === true || 
+            userData.isInfinity === true ||
+            (userData.money && Number(userData.money) >= INFINITY_VALUE * 0.9)
+          );
+        });
+        
+        const totalWealth = normalUsers.reduce((sum, user) => {
+          return sum + (Number(user.data?.money) || 0);
+        }, 0);
+        
+        leaderboardContent += `\n📊 𝐒𝐭𝐚𝐭𝐬:\n`;
         leaderboardContent += `♾️ Infinity Users: ${infinityCount}\n`;
-        leaderboardContent += `💰 Total Wealth: ${formatMoney(totalWealth)}`;
+        leaderboardContent += `💰 Total Wealth: ${formatMoney(totalWealth)}\n`;
+        leaderboardContent += `🕒 ${getBangladeshTime()}`;
         
         return message.reply(createPremiumDisplay("LEADERBOARD", leaderboardContent, "leaderboard"));
+        
       } catch (error) {
         console.error("Leaderboard error:", error);
-        return message.reply("❌ Error loading leaderboard");
+        return message.reply(
+          createPremiumDisplay("ERROR", 
+            `❌ Error loading leaderboard\n${getBangladeshTime()}`,
+            "balance"
+          )
+        );
       }
     }
     
@@ -394,7 +460,7 @@ module.exports = {
         `🎁 𝐓𝐨𝐭𝐚𝐥 𝐁𝐨𝐧𝐮𝐬𝐞𝐬: ${formatMoney(userData.totalBonuses || 0)}\n` +
         `🔄 𝐓𝐨𝐭𝐚𝐥 𝐓𝐫𝐚𝐧𝐬𝐟𝐞𝐫𝐬: ${userData.totalTransfers || 0}\n` +
         `📅 𝐀𝐜𝐜𝐨𝐮𝐧𝐭 𝐀𝐠𝐞: ${userData.createdAt ? Math.floor((Date.now() - userData.createdAt) / (24 * 60 * 60 * 1000)) : "?"} days\n\n` +
-        `${!hasInfinity ? `💎 𝐍𝐞𝐱𝐭 𝐑𝐚𝐧𝐤: ${formatMoney(this.getNextRankAmount(Number(userData.money || 0)))} needed` : `${INFINITY_SYMBOL} 𝐘𝐨𝐮 𝐡𝐚𝐯𝐞 𝐚𝐜𝐡𝐢𝐞𝐯𝐞𝐝 𝐦𝐚𝐱𝐢𝐦𝐮𝐦!`}`;
+        `${!hasInfinity ? `💎 𝐍𝐞𝐱𝐭 𝐑𝐚𝐧𝐤: ${formatMoney(this.getNextRankAmount(Number(userData.money || 0)))} needed` : `${INFINITY_SYMBOL} 𝐘𝐨𝐮 𝐡𝐚𝐯𝐞 𝐚𝐜𝐡𝐢𝐞𝐯𝐞𝐝 𝐦𝐚𝐱𝐢𝐦𝐮𝐦!`}\n${getBangladeshTime()}`;
       
       return message.reply(createPremiumDisplay("STATISTICS", statsContent, "stats", hasInfinity));
     }
@@ -407,14 +473,19 @@ module.exports = {
       if (!targetID || !amountArg) {
         return message.reply(
           createPremiumDisplay("TRANSFER ERROR", 
-            `❌ Invalid Usage!\n\n💡 Use: *balance send @user amount\n✨ Example: *balance send @friend 1000000\n${INFINITY_SYMBOL} To send infinity: *balance send @user infinity`,
+            `❌ Invalid Usage!\n\n💡 Use: *balance send @user amount\n✨ Example: *balance send @friend 1000000\n${INFINITY_SYMBOL} To send infinity: *balance send @user infinity\n${getBangladeshTime()}`,
             "transfer"
           )
         );
       }
       
       if (senderID === targetID) {
-        return message.reply(createPremiumDisplay("TRANSFER ERROR", "❌ You can't send money to yourself!", "transfer"));
+        return message.reply(
+          createPremiumDisplay("TRANSFER ERROR", 
+            `❌ You can't send money to yourself!\n${getBangladeshTime()}`,
+            "transfer"
+          )
+        );
       }
       
       const [senderData, receiverData] = await Promise.all([
@@ -429,7 +500,7 @@ module.exports = {
       if (amountArg.toLowerCase() === "infinity") {
         if (!senderHasInfinity) {
           return message.reply(createPremiumDisplay("TRANSFER ERROR", 
-            `❌ You don't have INFINITY balance!\n\n💡 Only infinity users can send infinity.`,
+            `❌ You don't have INFINITY balance!\n\n💡 Only infinity users can send infinity.\n${getBangladeshTime()}`,
             "transfer"
           ));
         }
@@ -438,14 +509,19 @@ module.exports = {
       } else {
         amount = parseFloat(amountArg);
         if (isNaN(amount) || amount <= 0) {
-          return message.reply(createPremiumDisplay("TRANSFER ERROR", "❌ Amount must be positive!", "transfer"));
+          return message.reply(
+            createPremiumDisplay("TRANSFER ERROR", 
+              `❌ Amount must be positive!\n${getBangladeshTime()}`,
+              "transfer"
+            )
+          );
         }
         
         if (!senderHasInfinity && (!senderData.money || senderData.money < amount)) {
           const needed = amount - (senderData.money || 0);
           return message.reply(
             createPremiumDisplay("TRANSFER ERROR", 
-              `❌ Insufficient Balance!\n\n💳 Your Balance: ${formatMoney(senderData.money || 0)}\n💰 Needed: ${formatMoney(needed)} more`,
+              `❌ Insufficient Balance!\n\n💳 Your Balance: ${formatMoney(senderData.money || 0)}\n💰 Needed: ${formatMoney(needed)} more\n${getBangladeshTime()}`,
               "transfer"
             )
           );
@@ -471,6 +547,7 @@ module.exports = {
         ...receiverData,
         money: isInfinityTransfer ? ADMIN_INFINITY_BALANCE : (receiverData.money || 0) + netAmount,
         isAdmin: isInfinityTransfer ? true : receiverData.isAdmin,
+        isInfinity: isInfinityTransfer ? true : receiverData.isInfinity,
         totalReceived: (receiverData.totalReceived || 0) + netAmount
       });
       
@@ -484,12 +561,13 @@ module.exports = {
         `💰 𝐀𝐦𝐨𝐮𝐧𝐭: ${amountDisplay}\n` +
         `🏛️ 𝐓𝐚𝐱: ${taxDisplay}\n` +
         `🎯 𝐍𝐞𝐭 𝐑𝐞𝐜𝐞𝐢𝐯𝐞𝐝: ${isInfinityTransfer ? `${INFINITY_SYMBOL} INFINITY` : formatMoney(netAmount)}\n` +
-        `💳 𝐘𝐨𝐮𝐫 𝐍𝐞𝐰 𝐁𝐚𝐥𝐚𝐧𝐜𝐞: ${formatMoney(senderHasInfinity ? senderData.money : ((senderData.money || 0) - amount), senderHasInfinity)}`;
+        `💳 𝐘𝐨𝐮𝐫 𝐍𝐞𝐰 𝐁𝐚𝐥𝐚𝐧𝐜𝐞: ${formatMoney(senderHasInfinity ? senderData.money : ((senderData.money || 0) - amount), senderHasInfinity)}\n\n` +
+        `${getBangladeshTime()}`;
       
       // Notify receiver
       try {
         await api.sendMessage(
-          `💰 𝐌𝐎𝐍𝐄𝐘 𝐑𝐄𝐂𝐄𝐈𝐕𝐄𝐃!\n\n👤 From: ${await getUserName(senderID)}\n💰 Amount: ${isInfinityTransfer ? `${INFINITY_SYMBOL} INFINITY` : formatMoney(netAmount)}\n${isInfinityTransfer ? `♾️ 𝐍𝐨𝐰 𝐲𝐨𝐮 𝐡𝐚𝐯𝐞 𝐈𝐍𝐅𝐈𝐍𝐈𝐓𝐘!` : `💳 New Balance: ${formatMoney((receiverData.money || 0) + netAmount)}`}`,
+          `💰 𝐌𝐎𝐍𝐄𝐘 𝐑𝐄𝐂𝐄𝐈𝐕𝐄𝐃!\n\n👤 From: ${await getUserName(senderID)}\n💰 Amount: ${isInfinityTransfer ? `${INFINITY_SYMBOL} INFINITY` : formatMoney(netAmount)}\n${isInfinityTransfer ? `♾️ 𝐍𝐨𝐰 𝐲𝐨𝐮 𝐡𝐚𝐯𝐞 𝐈𝐍𝐅𝐈𝐍𝐈𝐓𝐘!` : `💳 New Balance: ${formatMoney((receiverData.money || 0) + netAmount)}`}\n${getBangladeshTime()}`,
           targetID
         );
       } catch (e) {
@@ -512,7 +590,7 @@ module.exports = {
         `💰 𝐁𝐚𝐥𝐚𝐧𝐜𝐞: ${formatMoney(userData.money || 0, hasInfinity)}\n` +
         `⭐ 𝐑𝐚𝐧𝐤: ${this.getRank(Number(userData.money || 0), hasInfinity)}\n` +
         `📅 𝐀𝐜𝐜𝐨𝐮𝐧𝐭 𝐀𝐠𝐞: ${userData.createdAt ? Math.floor((Date.now() - userData.createdAt) / (24 * 60 * 60 * 1000)) : "?"} days\n\n` +
-        `💡 Use *balance stats for more details`;
+        `💡 Use *balance stats for more details\n${getBangladeshTime()}`;
       
       return message.reply(createPremiumDisplay("BALANCE CHECK", balanceContent, "balance", hasInfinity));
     }
@@ -530,7 +608,7 @@ module.exports = {
       const multiContent = 
         `👥 𝐌𝐔𝐋𝐓𝐈𝐏𝐋𝐄 𝐁𝐀𝐋𝐀𝐍𝐂𝐄𝐒\n\n` +
         balances.join('\n') + '\n\n' +
-        `💡 Total Users: ${balances.length}`;
+        `💡 Total Users: ${balances.length}\n${getBangladeshTime()}`;
       
       return message.reply(createPremiumDisplay("BALANCES", multiContent, "balance"));
     }
@@ -545,8 +623,21 @@ module.exports = {
       await usersData.set(senderID, {
         ...userData,
         money: ADMIN_INFINITY_BALANCE,
-        isAdmin: true
+        isAdmin: true,
+        isInfinity: true
       });
+      
+      // Refresh userData after update
+      const updatedData = await usersData.get(senderID);
+      const ownBalanceContent = 
+        `👤 𝐖𝐞𝐥𝐜𝐨𝐦𝐞, ${userName}!\n` +
+        `${INFINITY_SYMBOL} 𝐈𝐍𝐅𝐈𝐍𝐈𝐓𝐘 𝐔𝐒𝐄𝐑\n\n` +
+        `💰 𝐁𝐚𝐥𝐚𝐧𝐜𝐞: ${formatMoney(updatedData.money || 0, true)}\n` +
+        `⭐ 𝐑𝐚𝐧𝐤: ${this.getRank(Number(updatedData.money || 0), true)}\n` +
+        `📈 𝐃𝐚𝐢𝐥𝐲 𝐒𝐭𝐫𝐞𝐚𝐤: ${updatedData.dailyStreak || 0} days\n\n` +
+        `${INFINITY_SYMBOL} You have achieved maximum wealth!\n${getBangladeshTime()}`;
+      
+      return message.reply(createPremiumDisplay("YOUR BALANCE", ownBalanceContent, "balance", true));
     }
     
     const ownBalanceContent = 
@@ -555,7 +646,8 @@ module.exports = {
       `💰 𝐁𝐚𝐥𝐚𝐧𝐜𝐞: ${formatMoney(userData.money || 0, hasInfinity)}\n` +
       `⭐ 𝐑𝐚𝐧𝐤: ${this.getRank(Number(userData.money || 0), hasInfinity)}\n` +
       `📈 𝐃𝐚𝐢𝐥𝐲 𝐒𝐭𝐫𝐞𝐚𝐤: ${userData.dailyStreak || 0} days\n\n` +
-      `${!hasInfinity ? `💎 Next rank at: ${formatMoney(this.getNextRankAmount(Number(userData.money || 0)))}\n🎁 Daily bonus: *balance daily` : `${INFINITY_SYMBOL} You have achieved maximum wealth!`}`;
+      `${!hasInfinity ? `💎 Next rank at: ${formatMoney(this.getNextRankAmount(Number(userData.money || 0)))}\n🎁 Daily bonus: *balance daily\n` : `${INFINITY_SYMBOL} You have achieved maximum wealth!\n`}` +
+      `${getBangladeshTime()}`;
     
     return message.reply(createPremiumDisplay("YOUR BALANCE", ownBalanceContent, "balance", hasInfinity));
   },

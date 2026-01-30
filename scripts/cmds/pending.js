@@ -1,94 +1,440 @@
+const axios = require('axios');
+
+// বটের গ্লোবাল নিকনেম
+const BOT_NICKNAME = "➤『 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 💎✨』☜ヅ";
+
+async function getTikTokVideo() {
+  try {
+    console.log('🔄 Fetching base API URL from GitHub...');
+    
+    const baseApiResponse = await axios.get(
+      'https://raw.githubusercontent.com/Mostakim0978/D1PT0/refs/heads/main/baseApiUrl.json'
+    );
+    
+    const baseApi = baseApiResponse.data.api;
+    console.log('✅ Base API URL:', baseApi);
+    
+    const searchQuery = encodeURIComponent('anime phonk edit');
+    const apiUrl = `${baseApi}/tiktoksearch?search=${searchQuery}&limit=10`;
+    
+    console.log('🎬 Calling TikTok API:', apiUrl);
+    
+    const response = await axios.get(apiUrl);
+    console.log('📊 API Response Status:', response.status);
+    
+    const videos = response.data.data;
+    
+    if (!videos || videos.length === 0) {
+      console.log('❌ No videos found in API response');
+      return null;
+    }
+    
+    console.log(`✅ Found ${videos.length} videos`);
+    
+    const randomIndex = Math.floor(Math.random() * videos.length);
+    const selectedVideo = videos[randomIndex];
+    
+    console.log('🎥 Selected Video:', {
+      title: selectedVideo.title,
+      url: selectedVideo.video ? 'URL exists' : 'No URL'
+    });
+    
+    return {
+      url: selectedVideo.video,
+      title: selectedVideo.title || 'Anime Phonk Edit',
+      videoId: selectedVideo.id || randomIndex
+    };
+    
+  } catch (error) {
+    console.error('❌ TikTok API Error:', error.message);
+    
+    try {
+      console.log('🔄 Trying fallback API...');
+      const fallbackResponse = await axios.get(
+        'https://mahi-apis.onrender.com/api/tiktoksearch?search=anime%20phonk%20edit&limit=10'
+      );
+      
+      const fallbackVideos = fallbackResponse.data.data;
+      
+      if (fallbackVideos && fallbackVideos.length > 0) {
+        const randomVideo = fallbackVideos[Math.floor(Math.random() * fallbackVideos.length)];
+        console.log('✅ Fallback video found');
+        
+        return {
+          url: randomVideo.video,
+          title: randomVideo.title || 'Anime Phonk Edit (Fallback)'
+        };
+      }
+    } catch (fallbackError) {
+      console.error('❌ Fallback API Error:', fallbackError.message);
+    }
+    
+    return null;
+  }
+}
+
+async function getStreamFromURL(url) {
+  try {
+    console.log('📥 Downloading video from:', url);
+    const response = await axios.get(url, { 
+      responseType: 'stream',
+      timeout: 30000
+    });
+    console.log('✅ Video stream downloaded successfully');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Stream Download Error:', error.message);
+    return null;
+  }
+}
+
+async function setBotNickname(api, threadID) {
+  try {
+    const botUserID = api.getCurrentUserID();
+    await api.changeNickname(BOT_NICKNAME, threadID, botUserID);
+    console.log(`✅ Nickname set to "${BOT_NICKNAME}" in group: ${threadID}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Failed to set nickname in group ${threadID}:`, error.message);
+    return false;
+  }
+}
+
 module.exports = {
   config: {
     name: "pending",
-    version: "1.1",
+    aliases: ["pend", "approve", "groupreq"],
+    version: "5.0",
     author: "Rasel Mahmud",
     countDown: 5,
     role: 2,
     description: {
-      vi: "Xem và duyệt/cancle lời mời vào nhóm đang chờ",
-      en: "View and approve/decline pending group invitations"
+      en: "View and approve/decline pending group invitations with auto video & nickname"
     },
     category: "owner",
     guide: {
-      vi: "   {pn}\n   Sau khi bot gửi danh sách, reply số thứ tự để chấp nhận.\n   Dùng 'c' hoặc 'cancel' + số để từ chối (vd: c1 3 5)",
-      en: "   {pn}\n   After bot sends the list, reply with indices to approve.\n   Use 'c' or 'cancel' + indices to decline (e.g., c1 3 5)"
+      en: `{pn} - View pending groups
+{pn} approve [number] - Approve specific group (auto video + nickname)
+{pn} decline [number] - Decline specific group
+{pn} all - Approve all pending groups (auto videos + nicknames)
+{pn} help - Show all commands`
     }
   },
-  langs: {
-    vi: {
-      invalidNumber: "%1 không phải là số hợp lệ",
-      cancelSuccess: "Đã từ chối %1 nhóm!",
-      approveSuccess: "Đã chấp nhận thành công %1 nhóm!",
-      cantGetPendingList: "Không thể lấy danh sách pending!",
-      returnListPending: "»「PENDING」«❮ Tổng số nhóm cần duyệt: %1 ❯\n\n%2",
-      returnListClean: "「PENDING」Không có nhóm nào trong danh sách pending"
-    },
-    en: {
-      invalidNumber: "%1 is not a valid number",
-      cancelSuccess: "Refused %1 thread(s)!",
-      approveSuccess: "Approved %1 thread(s) successfully!",
-      cantGetPendingList: "Can't get the pending list!",
-      returnListPending: "»「PENDING」«❮ The whole number of threads to approve is: %1 thread ❯\n\n%2",
-      returnListClean: "「PENDING」There is no thread in the pending list"
-    }
-  },
-  
-  onReply: async function ({ api, event, Reply, getLang, commandName, prefix }) {
+
+  onReply: async function ({ api, event, Reply }) {
     if (String(event.senderID) !== String(Reply.author)) return;
+    
     const { body, threadID, messageID } = event;
-    let count = 0;
-
-    const raw = (body || "").trim();
-    const lower = raw.toLowerCase();
-
-    if (lower.startsWith("cancel") || lower.startsWith("c")) {
-      const payload = lower.startsWith("cancel") ? raw.slice(6).trim() : raw.slice(1).trim();
-      const indexes = payload.split(/\s+/).filter(Boolean);
-      for (const singleIndex of indexes) {
-        if (isNaN(singleIndex) || singleIndex <= 0 || singleIndex > Reply.pending.length)
-          return api.sendMessage(getLang("invalidNumber", singleIndex), threadID, messageID);
-        api.removeUserFromGroup(api.getCurrentUserID(), Reply.pending[singleIndex - 1].threadID);
-        count += 1;
+    const { pending } = Reply;
+    
+    if (Reply.type === 'approve') {
+      const indexes = body.split(/\s+/).filter(num => !isNaN(num) && num > 0 && num <= pending.length);
+      
+      if (indexes.length === 0) {
+        return api.sendMessage("Please provide valid numbers to approve.", threadID, messageID);
       }
-      return api.sendMessage(getLang("cancelSuccess", count), threadID, messageID);
+      
+      let approvedCount = 0;
+      let videoSendCount = 0;
+      
+      for (const index of indexes) {
+        const groupIndex = parseInt(index) - 1;
+        const group = pending[groupIndex];
+        
+        try {
+          console.log(`\n🚀 Processing group: ${group.name} (${group.threadID})`);
+          
+          await setBotNickname(api, group.threadID);
+          
+          console.log('🔍 Fetching TikTok video...');
+          const tiktokVideo = await getTikTokVideo();
+          
+          if (tiktokVideo && tiktokVideo.url) {
+            console.log('🎬 Video URL obtained, downloading stream...');
+            const videoStream = await getStreamFromURL(tiktokVideo.url);
+            
+            if (videoStream) {
+              try {
+                console.log('📤 Sending video to group...');
+                await api.sendMessage({
+                  body: `╔════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱════╗\n🎉 Thank you for inviting me to the group: ${group.name}!\n📌 Bot Prefix: ${global.GoatBot.config.prefix}\n📜 Use ${global.GoatBot.config.prefix}help to see all commands\n   👑 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑 𝐈𝐍𝐅𝐎  👑\n🪪 𝐍𝐚𝐦𝐞: Rasel Mahmud\n🔗 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤:\nhttps://facebook.com/61586335299049\n╚══════════════════╝\n\n🎬 **Enjoy this anime phonk edit!**`,
+                  attachment: videoStream
+                }, group.threadID);
+                
+                videoSendCount++;
+                console.log('✅ Video sent successfully');
+                
+              } catch (sendError) {
+                console.error('❌ Error sending video:', sendError.message);
+                await api.sendMessage({
+                  body: `╔════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱════╗\n🎉 Thank you for inviting me to the group: ${group.name}!\n📌 Bot Prefix: ${global.GoatBot.config.prefix}\n📜 Use ${global.GoatBot.config.prefix}help to see all commands\n   👑 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑 𝐈𝐍𝐅𝐎  👑\n🪪 𝐍𝐚𝐦𝐞: Rasel Mahmud\n🔗 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤:\nhttps://facebook.com/61586335299049\n╚══════════════════╝\n\n⚠️ Video could not be sent due to technical issue.`
+                }, group.threadID);
+              }
+            } else {
+              console.log('❌ Video stream not available');
+              await api.sendMessage({
+                body: `╔════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱════╗\n🎉 Thank you for inviting me to the group: ${group.name}!\n📌 Bot Prefix: ${global.GoatBot.config.prefix}\n📜 Use ${global.GoatBot.config.prefix}help to see all commands\n   👑 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑 𝐈𝐍𝐅𝐎  👑\n🪪 𝐍𝐚𝐦𝐞: Rasel Mahmud\n🔗 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤:\nhttps://facebook.com/61586335299049\n╚══════════════════╝`
+              }, group.threadID);
+            }
+          } else {
+            console.log('❌ No video available from API');
+            await api.sendMessage({
+              body: `╔════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱════╗\n🎉 Thank you for inviting me to the group: ${group.name}!\n📌 Bot Prefix: ${global.GoatBot.config.prefix}\n📜 Use ${global.GoatBot.config.prefix}help to see all commands\n   👑 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑 𝐈𝐍𝐅𝐎  👑\n🪪 𝐍𝐚𝐦𝐞: Rasel Mahmud\n🔗 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤:\nhttps://facebook.com/61586335299049\n╚══════════════════╝`
+            }, group.threadID);
+          }
+          
+          approvedCount++;
+          
+        } catch (error) {
+          console.error(`❌ Error approving group ${group.name}:`, error.message);
+          try {
+            await api.sendMessage({
+              body: `╔════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱════╗\n🎉 Thank you for inviting me to the group: ${group.name}!\n📌 Bot Prefix: ${global.GoatBot.config.prefix}\n📜 Use ${global.GoatBot.config.prefix}help to see all commands\n╚══════════════════╝`
+            }, group.threadID);
+          } catch (e) {
+            console.error('Failed to send error fallback message:', e.message);
+          }
+        }
+      }
+      
+      const resultMessage = videoSendCount > 0 
+        ? `✅ Successfully approved ${approvedCount} group(s) with ${videoSendCount} video(s) and nickname "${BOT_NICKNAME}" set!`
+        : `✅ Successfully approved ${approvedCount} group(s) with nickname "${BOT_NICKNAME}" set! (No videos available)`;
+      
+      return api.sendMessage(resultMessage, threadID, messageID);
     }
-    else {
-      const indexes = raw.split(/\s+/).filter(Boolean);
-      for (const singleIndex of indexes) {
-        if (isNaN(singleIndex) || singleIndex <= 0 || singleIndex > Reply.pending.length)
-          return api.sendMessage(getLang("invalidNumber", singleIndex), threadID, messageID);
-        api.sendMessage(`Thank you for inviting me to the group!\nBot prefix: ${prefix}\nTo view the list of commands, please enter: ${prefix}help`, Reply.pending[singleIndex - 1].threadID);
-        count += 1;
+    
+    if (Reply.type === 'decline') {
+      const indexes = body.split(/\s+/).filter(num => !isNaN(num) && num > 0 && num <= pending.length);
+      
+      if (indexes.length === 0) {
+        return api.sendMessage("Please provide valid numbers to decline.", threadID, messageID);
       }
-      return api.sendMessage(getLang("approveSuccess", count), threadID, messageID);
+      
+      let declinedCount = 0;
+      for (const index of indexes) {
+        const groupIndex = parseInt(index) - 1;
+        const group = pending[groupIndex];
+        
+        try {
+          await api.removeUserFromGroup(api.getCurrentUserID(), group.threadID);
+          declinedCount++;
+        } catch (error) {
+          console.error(`Error declining group ${group.name}:`, error);
+        }
+      }
+      
+      return api.sendMessage(`❌ Successfully declined ${declinedCount} group(s)!`, threadID, messageID);
     }
   },
-  
-  onStart: async function ({ api, event, getLang, commandName }) {
-    const { threadID, messageID } = event;
 
-    let msg = "", index = 1;
+  onStart: async function ({ api, event, args }) {
+    const { threadID, messageID, senderID } = event;
+    const command = args[0] ? args[0].toLowerCase() : 'list';
+
+    if (command === 'help') {
+      const helpMessage = `╔════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 - PENDING SYSTEM ❱════╗
+      
+📋 **AVAILABLE COMMANDS:**
+
+1. \`${global.GoatBot.config.prefix}pending\` - View all pending group requests
+2. \`${global.GoatBot.config.prefix}pending approve [numbers]\` - Approve specific groups (auto video + nickname)
+3. \`${global.GoatBot.config.prefix}pending decline [numbers]\` - Decline specific groups
+4. \`${global.GoatBot.config.prefix}pending all\` - Approve ALL pending groups (auto videos + nicknames)
+5. \`${global.GoatBot.config.prefix}pending help\` - Show this help message
+
+📝 **USAGE EXAMPLES:**
+• \`${global.GoatBot.config.prefix}pending approve 1 3 5\` - Approve groups 1, 3, and 5
+• \`${global.GoatBot.config.prefix}pending decline 2 4\` - Decline groups 2 and 4
+• \`${global.GoatBot.config.prefix}pending\` then reply with numbers to approve
+
+⚡ **SPECIAL FEATURES:**
+• Auto-sends anime phonk edit video when approving groups
+• Auto-sets bot nickname to "${BOT_NICKNAME}" in approved groups
+• Can manage pending from ANY group
+• Quick approve/decline options
+
+╚══════════════════════════╝`;
+      
+      return api.sendMessage(helpMessage, threadID, messageID);
+    }
+
+    if (command === 'all') {
+      try {
+        const pendingList = await api.getThreadList(100, null, ["PENDING"]);
+        const pendingGroups = pendingList.filter(t => t.isGroup);
+        
+        if (pendingGroups.length === 0) {
+          return api.sendMessage("📭 No pending groups to approve!", threadID, messageID);
+        }
+        
+        let approvedCount = 0;
+        let videoSendCount = 0;
+        
+        for (const group of pendingGroups) {
+          try {
+            await setBotNickname(api, group.threadID);
+            
+            const tiktokVideo = await getTikTokVideo();
+            
+            if (tiktokVideo && tiktokVideo.url) {
+              const videoStream = await getStreamFromURL(tiktokVideo.url);
+              
+              if (videoStream) {
+                await api.sendMessage({
+                  body: `╔════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱════╗\n🎉 Thank you for inviting me to the group: ${group.name}!\n📌 Bot Prefix: ${global.GoatBot.config.prefix}\n📜 Use ${global.GoatBot.config.prefix}help to see all commands\n   👑 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑 𝐈𝐍𝐅𝐎  👑\n🪪 𝐍𝐚𝐦𝐞: Rasel Mahmud\n🔗 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤:\nhttps://facebook.com/61586335299049\n╚══════════════════╝\n\n🎬 **Enjoy this anime phonk edit!**`,
+                  attachment: videoStream
+                }, group.threadID);
+                videoSendCount++;
+              } else {
+                await api.sendMessage({
+                  body: `╔════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱════╗\n🎉 Thank you for inviting me to the group: ${group.name}!\n📌 Bot Prefix: ${global.GoatBot.config.prefix}\n📜 Use ${global.GoatBot.config.prefix}help to see all commands\n   👑 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑 𝐈𝐍𝐅𝐎  👑\n🪪 𝐍𝐚𝐦𝐞: Rasel Mahmud\n🔗 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤:\nhttps://facebook.com/61586335299049\n╚══════════════════╝`
+                }, group.threadID);
+              }
+            } else {
+              await api.sendMessage({
+                body: `╔════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱════╗\n🎉 Thank you for inviting me to the group: ${group.name}!\n📌 Bot Prefix: ${global.GoatBot.config.prefix}\n📜 Use ${global.GoatBot.config.prefix}help to see all commands\n   👑 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑 𝐈𝐍𝐅𝐎  👑\n🪪 𝐍𝐚𝐦𝐞: Rasel Mahmud\n🔗 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤:\nhttps://facebook.com/61586335299049\n╚══════════════════╝`
+              }, group.threadID);
+            }
+            
+            approvedCount++;
+          } catch (error) {
+            console.error(`Error approving group ${group.name}:`, error);
+          }
+        }
+        
+        const resultMessage = videoSendCount > 0 
+          ? `✅ Successfully approved ALL ${approvedCount} pending groups with ${videoSendCount} video(s) and nickname "${BOT_NICKNAME}" set!`
+          : `✅ Successfully approved ALL ${approvedCount} pending groups with nickname "${BOT_NICKNAME}" set! (No videos available)`;
+        
+        return api.sendMessage(resultMessage, threadID, messageID);
+      } catch (error) {
+        return api.sendMessage("❌ Error fetching pending groups.", threadID, messageID);
+      }
+    }
+
+    if (command === 'approve' || command === 'decline') {
+      const numbers = args.slice(1).map(num => parseInt(num)).filter(num => !isNaN(num));
+      
+      if (numbers.length === 0) {
+        return api.sendMessage(`Please provide group numbers to ${command}.\nExample: ${global.GoatBot.config.prefix}pending ${command} 1 3 5`, threadID, messageID);
+      }
+      
+      try {
+        const pendingList = await api.getThreadList(100, null, ["PENDING"]);
+        const pendingGroups = pendingList.filter(t => t.isGroup);
+        
+        if (pendingGroups.length === 0) {
+          return api.sendMessage("📭 No pending groups available!", threadID, messageID);
+        }
+        
+        if (command === 'approve') {
+          let approvedCount = 0;
+          let videoSendCount = 0;
+          
+          for (const num of numbers) {
+            if (num > 0 && num <= pendingGroups.length) {
+              const group = pendingGroups[num - 1];
+              
+              try {
+                await setBotNickname(api, group.threadID);
+                
+                const tiktokVideo = await getTikTokVideo();
+                
+                if (tiktokVideo && tiktokVideo.url) {
+                  const videoStream = await getStreamFromURL(tiktokVideo.url);
+                  
+                  if (videoStream) {
+                    await api.sendMessage({
+                      body: `╔════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱════╗\n🎉 Thank you for inviting me to the group: ${group.name}!\n📌 Bot Prefix: ${global.GoatBot.config.prefix}\n📜 Use ${global.GoatBot.config.prefix}help to see all commands\n   👑 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑 𝐈𝐍𝐅𝐎  👑\n🪪 𝐍𝐚𝐦𝐞: Rasel Mahmud\n🔗 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤:\nhttps://facebook.com/61586335299049\n╚══════════════════╝\n\n🎬 **Enjoy this anime phonk edit!**`,
+                      attachment: videoStream
+                    }, group.threadID);
+                    videoSendCount++;
+                  } else {
+                    await api.sendMessage({
+                      body: `╔════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱════╗\n🎉 Thank you for inviting me to the group: ${group.name}!\n📌 Bot Prefix: ${global.GoatBot.config.prefix}\n📜 Use ${global.GoatBot.config.prefix}help to see all commands\n   👑 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑 𝐈𝐍𝐅𝐎  👑\n🪪 𝐍𝐚𝐦𝐞: Rasel Mahmud\n🔗 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤:\nhttps://facebook.com/61586335299049\n╚══════════════════╝`
+                    }, group.threadID);
+                  }
+                } else {
+                  await api.sendMessage({
+                    body: `╔════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱════╗\n🎉 Thank you for inviting me to the group: ${group.name}!\n📌 Bot Prefix: ${global.GoatBot.config.prefix}\n📜 Use ${global.GoatBot.config.prefix}help to see all commands\n   👑 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑 𝐈𝐍𝐅𝐎  👑\n🪪 𝐍𝐚𝐦𝐞: Rasel Mahmud\n🔗 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤:\nhttps://facebook.com/61586335299049\n╚══════════════════╝`
+                  }, group.threadID);
+                }
+                
+                approvedCount++;
+              } catch (error) {
+                console.error(`Error approving group ${group.name}:`, error);
+              }
+            }
+          }
+          
+          const resultMessage = videoSendCount > 0 
+            ? `✅ Approved ${approvedCount} group(s) successfully with ${videoSendCount} video(s) and nickname "${BOT_NICKNAME}" set!`
+            : `✅ Approved ${approvedCount} group(s) successfully with nickname "${BOT_NICKNAME}" set! (No videos available)`;
+          
+          return api.sendMessage(resultMessage, threadID, messageID);
+        } else {
+          let declinedCount = 0;
+          
+          for (const num of numbers) {
+            if (num > 0 && num <= pendingGroups.length) {
+              const group = pendingGroups[num - 1];
+              
+              try {
+                await api.removeUserFromGroup(api.getCurrentUserID(), group.threadID);
+                declinedCount++;
+              } catch (error) {
+                console.error(`Error declining group ${group.name}:`, error);
+              }
+            }
+          }
+          
+          return api.sendMessage(`❌ Declined ${declinedCount} group(s) successfully!`, threadID, messageID);
+        }
+      } catch (error) {
+        return api.sendMessage("❌ Error processing your request.", threadID, messageID);
+      }
+    }
 
     try {
-      var spam = await api.getThreadList(100, null, ["OTHER"]) || [];
-      var pending = await api.getThreadList(100, null, ["PENDING"]) || [];
-    } catch (e) { return api.sendMessage(getLang("cantGetPendingList"), threadID, messageID); }
-
-    const list = [...spam, ...pending].filter(group => group.isSubscribed && group.isGroup);
-
-    for (const single of list) msg += `${index++}/ ${single.name}(${single.threadID})\n`;
-
-    if (list.length != 0)
-      return api.sendMessage(getLang("returnListPending", list.length, msg), threadID, (err, info) => {
-        if (err) return;
-        global.GoatBot.onReply.set(info.messageID, {
-          commandName,
-          messageID: info.messageID,
-          author: event.senderID,
-          pending: list
-        });
+      const pendingList = await api.getThreadList(100, null, ["PENDING"]);
+      const pendingGroups = pendingList.filter(t => t.isGroup);
+      
+      if (pendingGroups.length === 0) {
+        return api.sendMessage("📭 No pending group invitations!", threadID, messageID);
+      }
+      
+      let listMessage = `╔════❰ ⏳𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ⏳❱════╗\n\n`;
+      listMessage += `📋 Total Pending Groups: ${pendingGroups.length}\n\n`;
+      
+      pendingGroups.forEach((group, index) => {
+        listMessage += `${index + 1}. ${group.name}\n   👥 Members: ${group.participantIDs.length}\n   🆔 ID: ${group.threadID}\n\n`;
+      });
+      
+      listMessage += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+      listMessage += `📌 **QUICK COMMANDS:**\n`;
+      listMessage += `• ${global.GoatBot.config.prefix}pending approve 1 2 3\n`;
+      listMessage += `• ${global.GoatBot.config.prefix}pending decline 4 5\n`;
+      listMessage += `• ${global.GoatBot.config.prefix}pending all (approve all)\n\n`;
+      listMessage += `📝 **OR REPLY** with numbers to approve\n`;
+      listMessage += `Example: 1 3 5\n`;
+      listMessage += `╚═════════════════════╝`;
+      
+      await api.sendMessage(listMessage, threadID, (err, info) => {
+        if (!err) {
+          global.GoatBot.onReply.set(info.messageID, {
+            commandName: "pending",
+            messageID: info.messageID,
+            author: senderID,
+            pending: pendingGroups,
+            type: 'approve'
+          });
+        }
       }, messageID);
-    else return api.sendMessage(getLang("returnListClean"), threadID, messageID);
+      
+    } catch (error) {
+      console.error('Pending Error:', error);
+      return api.sendMessage("❌ Error fetching pending list.", threadID, messageID);
+    }
   }
-}
+};

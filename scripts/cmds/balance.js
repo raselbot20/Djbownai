@@ -8,7 +8,7 @@ module.exports = {
   config: {
     name: "balance",
     aliases: ["bal", "$", "cash", "money", "টাকা", "ব্যালেন্স"],
-    version: "6.0",
+    version: "7.0",
     author: "Rasel Mahmud",
     countDown: 2,
     role: 0,
@@ -54,7 +54,7 @@ module.exports = {
       hours = hours % 12;
       hours = hours ? hours : 12;
       
-      return `🕒 ${date}/${month}/${year}, ${hours}:${minutes}:${seconds} ${ampm}`;
+      return `${date}/${month}/${year}, ${hours}:${minutes}:${seconds} ${ampm}`;
     };
     
     // ==================== ADVANCED MONEY FORMATTING ====================
@@ -151,7 +151,8 @@ module.exports = {
           default:
             header = `╔════❰ ✨ 𝐒𝐘𝐒𝐓𝐄𝐌 ❱════╗\n`;
         }
-        footer = `╚═══════════════════╝`;
+        footer = `
+        ╚═══════════════════╝`;
       }
       
       return header + content + footer;
@@ -346,51 +347,76 @@ module.exports = {
       return message.reply(createPremiumDisplay("WEEKLY BONUS", bonusContent, "bonus"));
     }
     
-    // ==================== LEADERBOARD - FIXED ====================
+    // ==================== LEADERBOARD - COMPLETELY FIXED ====================
     if (args[0]?.toLowerCase() === "top") {
       try {
         const allUsers = await usersData.getAll();
         
-        // ✅ FIX: Infinity Users গোনার জন্য প্রথমে চেক করুন
-        const infinityUsers = allUsers.filter(user => {
+        // ✅ ১ম ধাপ: ডেটা প্রসেসিং এবং সাজানো
+        const userList = [];
+        
+        for (const user of allUsers) {
+          if (!user || !user.data) continue;
+          
           const userData = user.data;
-          return userData && (
-            userData.isAdmin === true || 
-            userData.isInfinity === true ||
-            (userData.money && Number(userData.money) >= INFINITY_VALUE * 0.9)
-          );
+          const balance = Number(userData.money) || 0;
+          const isInfinity = hasInfinityBalance(userData);
+          
+          // Infinity ইউজারদের জন্য বিশেষ ট্রিটমেন্ট
+          const displayBalance = isInfinity ? ADMIN_INFINITY_BALANCE : balance;
+          
+          userList.push({
+            id: user.userID,
+            balance: displayBalance,
+            originalBalance: balance,
+            isInfinity: isInfinity,
+            name: null // পরে নাম লোড করব
+          });
+        }
+        
+        // ✅ ২য় ধাপ: Infinity ইউজারদের প্রথমে, তারপর বেশি টাকার ইউজার
+        userList.sort((a, b) => {
+          // Infinity ইউজাররা সবসময় প্রথমে
+          if (a.isInfinity && !b.isInfinity) return -1;
+          if (!a.isInfinity && b.isInfinity) return 1;
+          
+          // দুজনই Infinity হলে টাই অনুযায়ী সাজানো
+          if (a.isInfinity && b.isInfinity) return 0;
+          
+          // সাধারণ ইউজারদের টাকার পরিমাণ অনুযায়ী সাজানো
+          return b.originalBalance - a.originalBalance;
         });
         
-        // ✅ সব ইউজারকে ব্যালেন্স অনুযায়ী সাজানো (Infinity ইউজাররা প্রথমে)
-        const richList = allUsers
-          .filter(user => user.data) // যাদের ডাটা আছে
-          .map(user => ({
-            id: user.userID,
-            balance: Number(user.data.money) || 0,
-            isInfinity: hasInfinityBalance(user.data),
-            name: "Loading..."
-          }))
-          .sort((a, b) => {
-            // ১ম: Infinity ইউজার আগে
-            if (a.isInfinity && !b.isInfinity) return -1;
-            if (!a.isInfinity && b.isInfinity) return 1;
-            if (a.isInfinity && b.isInfinity) return 0;
-            
-            // ২য়: বেশি টাকা আগে
-            return b.balance - a.balance;
-          })
-          .slice(0, 10); // শুধু টপ ১০
+        // ✅ ৩য় ধাপ: শুধু টপ ১০
+        const topUsers = userList.slice(0, 10);
         
-        // ✅ নামগুলো লোড করুন
-        for (let i = 0; i < Math.min(5, richList.length); i++) {
-          if (richList[i]) {
-            richList[i].name = await getUserName(richList[i].id);
+        // ✅ ৪র্থ ধাপ: নাম লোড করা
+        const userIds = topUsers.map(u => u.id);
+        if (userIds.length > 0) {
+          try {
+            const userInfos = await api.getUserInfo(userIds);
+            
+            topUsers.forEach(user => {
+              if (userInfos[user.id]) {
+                user.name = userInfos[user.id].name;
+              } else {
+                user.name = `User ${user.id.substring(0, 8)}...`;
+              }
+            });
+          } catch (error) {
+            // নাম লোড করতে ব্যর্থ হলে ID ব্যবহার করুন
+            topUsers.forEach(user => {
+              user.name = `User ${user.id.substring(0, 8)}...`;
+            });
           }
         }
         
-        let leaderboardContent = `🏆 𝐓𝐎𝐏 ${Math.min(10, richList.length)} 𝐑𝐈𝐂𝐇𝐄𝐒𝐓\n\n`;
+        // ✅ ৫ম ধাপ: Leaderboard কন্টেন্ট তৈরি
+        let leaderboardContent = `🏆 𝐓𝐎𝐏 ${topUsers.length} 𝐑𝐈𝐂𝐇𝐄𝐒𝐓\n\n`;
         
-        richList.forEach((user, index) => {
+        let hasRealBalance = false;
+        
+        topUsers.forEach((user, index) => {
           if (!user) return;
           
           let medal = "";
@@ -399,49 +425,54 @@ module.exports = {
           else if (index === 2) medal = "🥉";
           else medal = `#${index + 1}`;
           
+          // নাম ছোট করতে হলে
           const displayName = user.name && user.name.length > 15 ? 
             user.name.substring(0, 12) + "..." : 
-            user.name || `User ${user.id}`;
+            user.name || `User ${user.id.substring(0, 8)}...`;
           
-          const balanceDisplay = user.isInfinity ? 
-            `${INFINITY_SYMBOL} INFINITY` : 
-            formatMoney(user.balance);
+          // ব্যালেন্স ফরম্যাট
+          let balanceDisplay;
+          if (user.isInfinity) {
+            balanceDisplay = `${INFINITY_SYMBOL} INFINITY`;
+          } else if (user.originalBalance > 0) {
+            balanceDisplay = formatMoney(user.originalBalance);
+            hasRealBalance = true;
+          } else {
+            balanceDisplay = "💲0";
+          }
           
           leaderboardContent += `${medal} ${displayName}\n💰 ${balanceDisplay}\n━━━━━━━━━━━━━━━━━━\n`;
         });
         
-        // ✅ সঠিকভাবে Infinity Users গণনা
-        const infinityCount = infinityUsers.length;
+        // ✅ ৬ষ্ঠ ধাপ: স্ট্যাটিস্টিক্স
+        const infinityCount = userList.filter(u => u.isInfinity).length;
         
-        // ✅ টোটাল ওয়েলথ (শুধু Non-Infinity ইউজারদের)
-        const normalUsers = allUsers.filter(user => {
-          const userData = user.data;
-          return userData && !(
-            userData.isAdmin === true || 
-            userData.isInfinity === true ||
-            (userData.money && Number(userData.money) >= INFINITY_VALUE * 0.9)
-          );
-        });
-        
-        const totalWealth = normalUsers.reduce((sum, user) => {
-          return sum + (Number(user.data?.money) || 0);
-        }, 0);
+        // শুধু Non-Infinity ইউজারদের টাকা যোগ করুন
+        const totalWealth = userList
+          .filter(u => !u.isInfinity)
+          .reduce((sum, user) => sum + user.originalBalance, 0);
         
         leaderboardContent += `\n📊 𝐒𝐭𝐚𝐭𝐬:\n`;
         leaderboardContent += `♾️ Infinity Users: ${infinityCount}\n`;
         leaderboardContent += `💰 Total Wealth: ${formatMoney(totalWealth)}\n`;
         leaderboardContent += `🕒 ${getBangladeshTime()}`;
         
+        // ✅ ৭ম ধাপ: যদি সবাই 0 টাকা থাকে
+        if (!hasRealBalance && infinityCount === 0) {
+          leaderboardContent += `\n\n💡 No one has money yet!\nUse *balance daily to get your first bonus!`;
+        }
+        
         return message.reply(createPremiumDisplay("LEADERBOARD", leaderboardContent, "leaderboard"));
         
       } catch (error) {
         console.error("Leaderboard error:", error);
-        return message.reply(
-          createPremiumDisplay("ERROR", 
-            `❌ Error loading leaderboard\n${getBangladeshTime()}`,
-            "balance"
-          )
-        );
+        const fallbackContent = 
+          `🏆 𝐓𝐎𝐏 𝐑𝐈𝐂𝐇𝐄𝐒𝐓\n\n` +
+          `❌ Error loading leaderboard\n` +
+          `💡 Try again later\n\n` +
+          `${getBangladeshTime()}`;
+        
+        return message.reply(createPremiumDisplay("LEADERBOARD", fallbackContent, "leaderboard"));
       }
     }
     
@@ -460,7 +491,7 @@ module.exports = {
         `🎁 𝐓𝐨𝐭𝐚𝐥 𝐁𝐨𝐧𝐮𝐬𝐞𝐬: ${formatMoney(userData.totalBonuses || 0)}\n` +
         `🔄 𝐓𝐨𝐭𝐚𝐥 𝐓𝐫𝐚𝐧𝐬𝐟𝐞𝐫𝐬: ${userData.totalTransfers || 0}\n` +
         `📅 𝐀𝐜𝐜𝐨𝐮𝐧𝐭 𝐀𝐠𝐞: ${userData.createdAt ? Math.floor((Date.now() - userData.createdAt) / (24 * 60 * 60 * 1000)) : "?"} days\n\n` +
-        `${!hasInfinity ? `💎 𝐍𝐞𝐱𝐭 𝐑𝐚𝐧𝐤: ${formatMoney(this.getNextRankAmount(Number(userData.money || 0)))} needed` : `${INFINITY_SYMBOL} 𝐘𝐨𝐮 𝐡𝐚𝐯𝐞 𝐚𝐜𝐡𝐢𝐞𝐯𝐞𝐝 𝐦𝐚𝐱𝐢𝐦𝐮𝐦!`}\n${getBangladeshTime()}`;
+        `${!hasInfinity ? `💎 𝐍𝐞𝐱𝐭 𝐑𝐚𝐧𝐤: ${formatMoney(this.getNextRankAmount(Number(userData.money || 0)))} needed` : `${INFINITY_SYMBOL} 𝐘𝐨𝐮 𝐡𝐚𝐯𝐞 𝐚𝐜𝐡𝐢𝐞𝐯𝐞𝐝 𝐦𝐚𝐱𝐦𝐮𝐦!`}\n${getBangladeshTime()}`;
       
       return message.reply(createPremiumDisplay("STATISTICS", statsContent, "stats", hasInfinity));
     }

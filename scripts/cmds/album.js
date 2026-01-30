@@ -301,7 +301,7 @@ module.exports.onReply = async function ({ event, api, Reply }) {
     
     await fs.writeFile(filepath, videoBuffer);
     
-    const successMessage = `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n✅ 𝐕𝐈𝐃𝐄𝐎 𝐑𝐄𝐀𝐃𝐘 𝐅𝐎𝐑 𝐘𝐎𝐔!\n\n📂 𝐂𝐀𝐓𝐄𝐆𝐎𝐑𝐘: ${selectedCategory.name}\n🎥 𝐐𝐔𝐀𝐋𝐈𝐓𝐘: 𝐇𝐈𝐆𝐇 𝐃𝐄𝐅𝐈𝐍𝐈𝐓𝐈𝐎𝐍\n📦 𝐒𝐈𝐙𝐄: ${Math.round(videoBuffer.length / 1024 / 1024 * 100) / 100} MB\n\n💾 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐈𝐍𝐆 𝐘𝐎𝐔𝐑 𝐕𝐈𝐃𝐄𝐎...\n👤 𝐂𝐑𝐄𝐀𝐓𝐎𝐑: 𝐑𝐀𝐒𝐄𝐋 𝐌𝐀𝐇𝐌𝐔𝐃\n╚═══════════════════╝`;
+    const successMessage = `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n✅ 𝐕𝐈𝐃𝐄𝐎 𝐑𝐄𝐀𝐃𝐘 𝐅𝐎𝐑 𝐘𝐎𝐔!\n\n📂 𝐂𝐀𝐓𝐄𝐆𝐎𝐑𝐘: ${selectedCategory.name}\n📦 𝐒𝐈𝐙𝐄: ${Math.round(videoBuffer.length / 1024 / 1024 * 100) / 100} MB\n\n👤 𝐂𝐑𝐄𝐀𝐓𝐎𝐑: 𝐑𝐀𝐒𝐄𝐋 𝐌𝐀𝐇𝐌𝐔𝐃\n╚═══════════════════╝`;
     
     await api.unsendMessage(processingMsg.messageID);
     

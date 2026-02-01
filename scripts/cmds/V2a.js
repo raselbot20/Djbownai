@@ -3,7 +3,7 @@ const fs = require("fs-extra");
 module.exports = {
   config: {
     name: "v2a",
-    aliases: ["video2audio"],
+    aliases: ["video2audio", "mp3"],
     description: "Convert Video to audio ",
     version: "1.2",
     author: "Rasel Mahmud",

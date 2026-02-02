@@ -12,7 +12,7 @@ module.exports = {
     longDescription: { en: "✨ Browse, search, upload, and manage commands in the GoatMart marketplace." },
     category: "utility",
     version: "2.2",
-    role: 0,
+    role: 2,
     author: "Aryan Chauhan",
     cooldowns: 0,
   },

@@ -332,7 +332,7 @@ module.exports = {
       currentY += lineHeight;
       drawField(leftColumnX, currentY, "🆔", "UID", targetID, "#66ccff");
       currentY += lineHeight;
-      drawField(leftColumnX, currentY, "⚥", "Gender", genderStr, "#ff66aa");
+      drawField(leftColumnX, currentY, "🎭", "Gender", genderStr, "#ff66aa");
       currentY += lineHeight;
       drawField(leftColumnX, currentY, "💰", "Balance", `$${balance.toLocaleString()}`, "#66ff99");
       currentY += lineHeight;
@@ -350,7 +350,7 @@ module.exports = {
       currentY += lineHeight;
       drawField(rightColumnX, currentY, "🎂", "Birthday", birthday, "#ff9966");
       currentY += lineHeight;
-      drawField(rightColumnX, currentY, "🤝", "Friend", isFriend, isFriend.includes("✅") ? "#66ff66" : "#ff6666");
+      drawField(rightColumnX, currentY, "👥", "Friend", isFriend, isFriend.includes("✅") ? "#66ff66" : "#ff6666");
 
       // Stats section at bottom
       const statsY = cardY + 420;
@@ -407,10 +407,10 @@ module.exports = {
       const completeScore = 85; // Profile completeness
 
       // Draw progress bars with VERTICAL SPACING (prevents overlap)
-      drawProgressBar("★ Level", levelProgress, 10, cardX + 100, statsY + 50, 350, "#00ffff");
+      drawProgressBar("📊 Level", levelProgress, 10, cardX + 100, statsY + 50, 350, "#00ffff");
       drawProgressBar("⚡ Activity", xpProgress, 100, cardX + 100, statsY + 85, 350, "#ff55ff");
-      drawProgressBar("🤝 Friend", friendScore, 100, cardX + 480, statsY + 50, 350, "#ffff55");
-      drawProgressBar("✓ Complete", completeScore, 100, cardX + 480, statsY + 85, 350, "#55ff55");
+      drawProgressBar("👥 Friend", friendScore, 100, cardX + 480, statsY + 50, 350, "#ffff55");
+      drawProgressBar("✅ Complete", completeScore, 100, cardX + 480, statsY + 85, 350, "#55ff55");
 
       // Footer section
       const footerY = cardY + cardHeight - 50;
@@ -434,7 +434,7 @@ module.exports = {
       ctx.textAlign = "right";
 
       // Main bot name with symbols
-      const botName = "➤『 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 💎✨ 』☜ヅ";
+      const botName = "💎 Heli•LUMO 💎";
       const authorCredit = "Rasel Mahmud";
       ctx.fillText(`${botName} | ${authorCredit}`, cardX + cardWidth - 70, footerY + 25);
 

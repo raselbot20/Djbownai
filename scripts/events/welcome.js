@@ -22,7 +22,7 @@ module.exports = {
 			welcomeMessage: `💫 Thank you for inviting me to the group!
 🤖 Bot prefix: %1
 🛠 To view all commands, type: %1help
-👑 Admin Facebook ID: https://www.facebook.com/raselmahmud.q`,
+👑 Admin Facebook ID: https://www.facebook.com/profile.php?id=61586335299049`,
 			
 			multiple1: "you",
 			multiple2: "you guys",

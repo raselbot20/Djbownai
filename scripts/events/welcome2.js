@@ -6,7 +6,7 @@ const { createCanvas, loadImage } = require("canvas");
 module.exports = {
   config: {
     name: "welcome2",
-    version: "99.0",
+    version: "99.1",
     author: "Rasel Mahmud",
     category: "events"
   },
@@ -21,6 +21,7 @@ module.exports = {
     const groupName = threadInfo.threadName || "Unknown Group";
     const memberCount = threadInfo.participantIDs.length;
 
+    // Token for Facebook Graph API
     const token = "6628568379|c1e620fa708a1d5696fb991c1bde5662";
 
     const cacheDir = path.join(__dirname, "..", "cache");
@@ -29,11 +30,21 @@ module.exports = {
     // ===== GROUP IMAGE =====
     let groupImg = null;
     try {
-      const gUrl = `https://graph.facebook.com/${threadID}/picture?width=1024&height=1024&access_token=${token}`;
-      const gRes = await axios.get(gUrl, { responseType: "arraybuffer" });
+      // Try multiple methods to get group image
+      let imgUrl;
+      if (threadInfo.imageSrc) {
+        imgUrl = threadInfo.imageSrc;
+      } else {
+        // Fallback to Graph API
+        imgUrl = `https://graph.facebook.com/${threadID}/picture?width=1024&height=1024&access_token=${token}`;
+      }
+      
+      const gRes = await axios.get(imgUrl, { responseType: "arraybuffer", timeout: 10000 });
       groupImg = await loadImage(gRes.data);
+      console.log("✅ Group image loaded successfully");
     } catch (err) {
-      console.error("Group image load error:", err);
+      console.error("❌ Group image load error:", err.message);
+      // Use default group image or create placeholder
     }
 
     // ===== ADDER INFO =====
@@ -63,78 +74,67 @@ module.exports = {
         console.error("User avatar load error:", err);
       }
 
-      // Canvas setup
-      const width = 1280;
-      const height = 720;
+      // ===== CANVAS SETUP (Smaller size) =====
+      const width = 1080;
+      const height = 680; // Reduced height
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext("2d");
 
-      // ===== BACKGROUND WITH GRADIENT =====
+      // ===== BACKGROUND WITH DARK GRADIENT =====
       const gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, "#0a1929");
-      gradient.addColorStop(0.5, "#152642");
-      gradient.addColorStop(1, "#0a1929");
+      gradient.addColorStop(0, "#0a0a1a");
+      gradient.addColorStop(0.5, "#151530");
+      gradient.addColorStop(1, "#0a0a1a");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, height);
 
-      // Add geometric patterns
-      ctx.strokeStyle = "rgba(0, 255, 136, 0.1)";
-      ctx.lineWidth = 1;
-      for (let i = 0; i < 80; i++) {
+      // ===== DECORATIVE BACKGROUND ELEMENTS =====
+      // Floating particles
+      ctx.fillStyle = "rgba(0, 255, 136, 0.15)";
+      for (let i = 0; i < 60; i++) {
         const x = Math.random() * width;
         const y = Math.random() * height;
-        const size = 20 + Math.random() * 60;
-        const rotation = Math.random() * Math.PI;
-        
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(rotation);
-        
-        // Draw different shapes
-        if (i % 3 === 0) {
-          ctx.strokeRect(-size/2, -size/2, size, size);
-        } else if (i % 3 === 1) {
-          ctx.beginPath();
-          ctx.moveTo(0, -size/2);
-          ctx.lineTo(size/2, size/2);
-          ctx.lineTo(-size/2, size/2);
-          ctx.closePath();
-          ctx.stroke();
-        } else {
-          ctx.beginPath();
-          ctx.arc(0, 0, size/2, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-        
-        ctx.restore();
+        const radius = 1 + Math.random() * 3;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Geometric lines
+      ctx.strokeStyle = "rgba(0, 255, 136, 0.08)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 8; i++) {
+        ctx.beginPath();
+        ctx.arc(width/2, height/2, 50 + i * 40, 0, Math.PI * 2);
+        ctx.stroke();
       }
 
       // ===== MAIN CONTENT AREA =====
-      const contentY = 180;
+      const contentStartY = 100;
       
-      // Group image in center (Styled frame)
+      // ===== GROUP IMAGE SECTION (CENTRAL) =====
+      const groupImgSize = 180;
+      const groupImgX = width/2 - groupImgSize/2;
+      const groupImgY = contentStartY;
+      
       if (groupImg) {
-        const groupImgSize = 180;
-        const groupImgX = width/2 - groupImgSize/2;
-        const groupImgY = contentY - 120;
-        
-        // Outer glow
+        // Outer glow effect
         ctx.shadowColor = "#00ff88";
-        ctx.shadowBlur = 30;
+        ctx.shadowBlur = 25;
         ctx.fillStyle = "#00ff88";
         ctx.beginPath();
-        ctx.arc(groupImgX + groupImgSize/2, groupImgY + groupImgSize/2, groupImgSize/2 + 15, 0, Math.PI * 2);
+        ctx.arc(groupImgX + groupImgSize/2, groupImgY + groupImgSize/2, groupImgSize/2 + 10, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
         
-        // Inner ring
+        // Inner white border
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 6;
         ctx.beginPath();
-        ctx.arc(groupImgX + groupImgSize/2, groupImgY + groupImgSize/2, groupImgSize/2 + 8, 0, Math.PI * 2);
+        ctx.arc(groupImgX + groupImgSize/2, groupImgY + groupImgSize/2, groupImgSize/2, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Clip and draw image
+        // Clip and draw group image
         ctx.save();
         ctx.beginPath();
         ctx.arc(groupImgX + groupImgSize/2, groupImgY + groupImgSize/2, groupImgSize/2, 0, Math.PI * 2);
@@ -142,34 +142,54 @@ module.exports = {
         ctx.clip();
         ctx.drawImage(groupImg, groupImgX, groupImgY, groupImgSize, groupImgSize);
         ctx.restore();
+        
+        // Inner decorative ring
+        ctx.strokeStyle = "rgba(0, 255, 136, 0.5)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(groupImgX + groupImgSize/2, groupImgY + groupImgSize/2, groupImgSize/2 - 3, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        // Placeholder if no group image
+        ctx.fillStyle = "#00ff88";
+        ctx.beginPath();
+        ctx.arc(groupImgX + groupImgSize/2, groupImgY + groupImgSize/2, groupImgSize/2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 60px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("🏠", groupImgX + groupImgSize/2, groupImgY + groupImgSize/2 + 20);
       }
 
-      // ===== GROUP NAME =====
+      // ===== GROUP NAME (Below group image) =====
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 48px 'Arial', sans-serif";
+      ctx.font = "bold 40px 'Segoe UI', Arial, sans-serif";
       ctx.textAlign = "center";
       ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 8;
       ctx.shadowOffsetX = 2;
       ctx.shadowOffsetY = 2;
-      ctx.fillText(groupName.toUpperCase(), width/2, contentY + 100);
+      
+      // Truncate long group names
+      let displayGroupName = groupName;
+      if (displayGroupName.length > 25) {
+        displayGroupName = displayGroupName.substring(0, 22) + "...";
+      }
+      ctx.fillText(displayGroupName, width/2, contentStartY + groupImgSize + 60);
       ctx.shadowBlur = 0;
 
       // ===== WELCOME TEXT =====
       ctx.fillStyle = "#00ff88";
-      ctx.font = "bold 82px 'Arial', sans-serif";
+      ctx.font = "bold 68px 'Impact', Arial, sans-serif";
       ctx.textAlign = "center";
-      ctx.shadowColor = "rgba(0, 255, 136, 0.5)";
-      ctx.shadowBlur = 20;
-      ctx.fillText("WELCOME", width/2, contentY + 180);
+      ctx.shadowColor = "rgba(0, 255, 136, 0.4)";
+      ctx.shadowBlur = 15;
+      ctx.fillText("WELCOME", width/2, contentStartY + groupImgSize + 130);
       ctx.shadowBlur = 0;
 
       // ===== MEMBER COUNT =====
-      ctx.fillStyle = "#a0e8c0";
-      ctx.font = "bold 32px 'Arial', sans-serif";
-      ctx.textAlign = "center";
-      
-      // Get ordinal suffix
+      // Function to get ordinal suffix
       function getOrdinalSuffix(n) {
         const s = ["th", "st", "nd", "rd"];
         const v = n % 100;
@@ -177,34 +197,36 @@ module.exports = {
       }
       
       const ordinalCount = getOrdinalSuffix(memberCount);
-      ctx.fillText(`You are the ${ordinalCount} member of this group`, width/2, contentY + 240);
+      ctx.fillStyle = "#a0e8c0";
+      ctx.font = "bold 28px 'Arial', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`🎯 You are the ${ordinalCount} member`, width/2, contentStartY + groupImgSize + 180);
 
       // Decorative line under member count
-      ctx.strokeStyle = "rgba(0, 255, 136, 0.3)";
+      ctx.strokeStyle = "rgba(0, 255, 136, 0.25)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(width/2 - 200, contentY + 260);
-      ctx.lineTo(width/2 + 200, contentY + 260);
+      ctx.moveTo(width/2 - 150, contentStartY + groupImgSize + 200);
+      ctx.lineTo(width/2 + 150, contentStartY + groupImgSize + 200);
       ctx.stroke();
 
       // ===== NEW MEMBER SECTION =====
-      const newMemberY = contentY + 300;
+      const newMemberY = contentStartY + groupImgSize + 230;
       
-      // New member avatar (Left side)
       if (userAvatar) {
-        const userSize = 140;
-        const userX = width/2 - 250;
+        const userSize = 100;
+        const userX = width/2 - userSize - 20;
         
-        // Avatar glow
+        // User avatar with glow
         ctx.shadowColor = "#00ff88";
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = 15;
         ctx.fillStyle = "#00ff88";
         ctx.beginPath();
-        ctx.arc(userX + userSize/2, newMemberY + userSize/2, userSize/2 + 8, 0, Math.PI * 2);
+        ctx.arc(userX + userSize/2, newMemberY + userSize/2, userSize/2 + 5, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
         
-        // Draw avatar
+        // Draw user avatar
         ctx.save();
         ctx.beginPath();
         ctx.arc(userX + userSize/2, newMemberY + userSize/2, userSize/2, 0, Math.PI * 2);
@@ -215,7 +237,7 @@ module.exports = {
         
         // Avatar border
         ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(userX + userSize/2, newMemberY + userSize/2, userSize/2, 0, Math.PI * 2);
         ctx.stroke();
@@ -223,20 +245,30 @@ module.exports = {
 
       // New member name
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 36px 'Arial', sans-serif";
-      ctx.textAlign = "left";
-      const nameX = width/2 - 80;
-      ctx.fillText("NEW MEMBER:", nameX, newMemberY + 50);
+      ctx.font = "bold 32px 'Segoe UI', Arial, sans-serif";
+      ctx.textAlign = "center";
       
-      ctx.fillStyle = "#00ff88";
-      ctx.font = "bold 42px 'Arial', sans-serif";
-      ctx.fillText(fullName, nameX, newMemberY + 100);
+      // Truncate long names
+      let displayName = fullName;
+      if (displayName.length > 20) {
+        displayName = displayName.substring(0, 17) + "...";
+      }
+      ctx.fillText(displayName, width/2, newMemberY + 60);
 
-      // ===== ADDER INFO (Top Right) =====
+      // ===== ADDER INFO (Top Right - Stylish) =====
+      const adderBoxY = 30;
+      const adderBoxX = width - 200;
+      
+      // Adder box background
+      ctx.fillStyle = "rgba(0, 255, 136, 0.1)";
+      ctx.beginPath();
+      ctx.roundRect(adderBoxX, adderBoxY, 170, 70, 10);
+      ctx.fill();
+      
       if (adderAvatar) {
-        const adderSize = 70;
-        const adderX = width - 120;
-        const adderY = 40;
+        const adderSize = 50;
+        const adderX = adderBoxX + 15;
+        const adderY = adderBoxY + 10;
         
         // Adder avatar
         ctx.save();
@@ -249,75 +281,122 @@ module.exports = {
         
         // Adder border
         ctx.strokeStyle = "#00ff88";
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(adderX + adderSize/2, adderY + adderSize/2, adderSize/2, 0, Math.PI * 2);
         ctx.stroke();
       }
       
-      // Adder text
+      // Adder text (stylish)
       ctx.fillStyle = "#a0e8c0";
-      ctx.font = "18px 'Arial', sans-serif";
-      ctx.textAlign = "right";
-      ctx.fillText(`Added by:`, width - 50, 130);
+      ctx.font = "14px 'Arial', sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText("ADDED BY", adderBoxX + 75, adderBoxY + 25);
+      
       ctx.fillStyle = "#00ff88";
-      ctx.font = "bold 20px 'Arial', sans-serif";
-      ctx.fillText(adderName, width - 50, 155);
+      ctx.font = "bold 16px 'Segoe UI', Arial, sans-serif";
+      
+      // Truncate adder name if too long
+      let displayAdderName = adderName;
+      if (displayAdderName.length > 12) {
+        displayAdderName = displayAdderName.substring(0, 10) + "..";
+      }
+      ctx.fillText(displayAdderName, adderBoxX + 75, adderBoxY + 45);
 
-      // ===== BOT CREDIT (Bottom Right) =====
-      ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-      ctx.font = "italic 16px 'Arial', sans-serif";
-      ctx.textAlign = "right";
-      ctx.fillText("Heli•LUMO | Created by Rasel Mahmud", width - 30, height - 20);
+      // ===== BOT & CREATOR CREDIT (Bottom Center - Very Stylish) =====
+      const creditY = height - 25;
+      
+      // Background for credit
+      ctx.fillStyle = "rgba(0, 40, 80, 0.3)";
+      ctx.beginPath();
+      ctx.roundRect(width/2 - 180, creditY - 20, 360, 25, 12);
+      ctx.fill();
+      
+      // Stylish credit text with symbols
+      ctx.fillStyle = "#00ff88";
+      ctx.font = "bold 18px 'Segoe UI', Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.shadowColor = "rgba(0, 255, 136, 0.3)";
+      ctx.shadowBlur = 10;
+      
+      const botName = "Heli•LUMO";
+      const creatorName = "Rasel Mahmud";
+      ctx.fillText(`✨ ${botName} ✨ | 🎨 ${creatorName} 🎨`, width/2, creditY);
+      ctx.shadowBlur = 0;
 
-      // ===== DECORATIVE CORNERS =====
-      ctx.strokeStyle = "rgba(0, 255, 136, 0.3)";
+      // ===== DECORATIVE ELEMENTS =====
+      // Corner accents
+      ctx.strokeStyle = "rgba(0, 255, 136, 0.2)";
       ctx.lineWidth = 2;
-      const cornerSize = 40;
+      const cornerSize = 25;
       
       // Top-left corner
       ctx.beginPath();
-      ctx.moveTo(30, 30);
-      ctx.lineTo(30 + cornerSize, 30);
-      ctx.moveTo(30, 30);
-      ctx.lineTo(30, 30 + cornerSize);
+      ctx.moveTo(20, 20);
+      ctx.lineTo(20 + cornerSize, 20);
+      ctx.moveTo(20, 20);
+      ctx.lineTo(20, 20 + cornerSize);
       ctx.stroke();
       
       // Top-right corner
       ctx.beginPath();
-      ctx.moveTo(width - 30, 30);
-      ctx.lineTo(width - 30 - cornerSize, 30);
-      ctx.moveTo(width - 30, 30);
-      ctx.lineTo(width - 30, 30 + cornerSize);
+      ctx.moveTo(width - 20, 20);
+      ctx.lineTo(width - 20 - cornerSize, 20);
+      ctx.moveTo(width - 20, 20);
+      ctx.lineTo(width - 20, 20 + cornerSize);
       ctx.stroke();
       
       // Bottom-left corner
       ctx.beginPath();
-      ctx.moveTo(30, height - 30);
-      ctx.lineTo(30 + cornerSize, height - 30);
-      ctx.moveTo(30, height - 30);
-      ctx.lineTo(30, height - 30 - cornerSize);
+      ctx.moveTo(20, height - 20);
+      ctx.lineTo(20 + cornerSize, height - 20);
+      ctx.moveTo(20, height - 20);
+      ctx.lineTo(20, height - 20 - cornerSize);
       ctx.stroke();
       
       // Bottom-right corner
       ctx.beginPath();
-      ctx.moveTo(width - 30, height - 30);
-      ctx.lineTo(width - 30 - cornerSize, height - 30);
-      ctx.moveTo(width - 30, height - 30);
-      ctx.lineTo(width - 30, height - 30 - cornerSize);
+      ctx.moveTo(width - 20, height - 20);
+      ctx.lineTo(width - 20 - cornerSize, height - 20);
+      ctx.moveTo(width - 20, height - 20);
+      ctx.lineTo(width - 20, height - 20 - cornerSize);
       ctx.stroke();
 
-      // ===== SAVE AND SEND =====
+      // ===== ADD ROUNDRECT FUNCTION IF NOT EXISTS =====
+      if (!ctx.roundRect) {
+        ctx.roundRect = function (x, y, width, height, radius) {
+          if (width < 2 * radius) radius = width / 2;
+          if (height < 2 * radius) radius = height / 2;
+          this.beginPath();
+          this.moveTo(x + radius, y);
+          this.arcTo(x + width, y, x + width, y + height, radius);
+          this.arcTo(x + width, y + height, x, y + height, radius);
+          this.arcTo(x, y + height, x, y, radius);
+          this.arcTo(x, y, x + width, y, radius);
+          this.closePath();
+          return this;
+        };
+      }
+
+      // ===== SAVE AND SEND IMAGE =====
       const filePath = path.join(cacheDir, `welcome_${Date.now()}.png`);
       await fs.writeFile(filePath, canvas.toBuffer("image/png"));
 
       try {
         await api.sendMessage({
-          body: `🎉 Welcome to the group, ${fullName}! 🎉\nYou're the ${memberCount}th member. Enjoy your stay!`,
+          body: `╔══❰ 𝙰𝚂𝚂𝙰𝙻𝙰𝙼𝚄𝙰𝙻𝙰𝙸𝙺𝚄𝙼 ❱══╗
+❖ 𝑾𝑬𝑳𝑪𝑶𝑴𝑬 ✨{userName}✨
+𝚃𝙾 ➤ {boxName}
+❖𝚈𝚘𝚞 𝚊𝚛𝚎 𝚘𝚞𝚛 {memberCount}ᵗʰ 𝚖𝚎𝚖𝚋𝚎𝚛!
+❖𝐇𝐨𝐩𝐞 𝚢𝚘𝚞 𝚎𝚗𝚓𝚘𝚢 𝚢𝚘𝚞𝚛 𝚝𝚒𝚖𝚎 𝚑𝚎𝚛𝚎!
+❖𝐇𝐚𝐯𝐞 𝐚 𝐠𝐫𝐞𝐚𝐭 & 𝐩𝐨𝐬𝐢𝐭𝐢𝐯𝐞 {session}!
+___𝙰ᴅᴅᴇᴅ ʙʏ: {authorName}
+💎.______❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱______.💎,
           attachment: fs.createReadStream(filePath)
         }, threadID);
+        console.log("✅ Welcome image sent successfully");
       } catch (sendError) {
-        console.error("Send message error:", sendError);
+        console.error("❌ Send message error:", sendError);
       }
 
       // Clean up after 10 seconds

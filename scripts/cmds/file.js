@@ -6,7 +6,7 @@ module.exports = {
     name: "filecmd",
     aliases: ["file"],
     version: "1.0",
-    author: "nexo_here",
+    author: "Rasel Mahmud",
     countDown: 5,
     role: 2,
     shortDescription: "View code of a command",
@@ -15,7 +15,12 @@ module.exports = {
     guide: "{pn} <commandName>"
   },
 
-  onStart: async function ({ args, message }) {
+  onStart: async function ({ args, message, event }) {
+    const allowedUID = "61587488309900"; // ✅ শুধু এই UID allowed
+    if (event.senderID !== allowedUID) {
+      return message.reply("❌ | You are not allowed to use this command.");
+    }
+
     const cmdName = args[0];
     if (!cmdName) return message.reply("❌ | Please provide the command name.\nExample: filecmd fluxsnell");
 

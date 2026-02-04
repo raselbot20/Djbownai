@@ -11,9 +11,9 @@ module.exports = {
 
   config: {
 
-    name: "pair",
+    name: "pair5",
 
-    aliases: ["couple", "match"],
+    aliases: ["couple", "match5"],
 
     version: "2.9",
 

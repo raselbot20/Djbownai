@@ -186,7 +186,7 @@ module.exports = {
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 50px Arial";
         ctx.textAlign = "center";
-        ctx.fillText("🏠", groupImgX + groupImgSize/2, groupImgY + groupImgSize/2 + 15);
+        ctx.fillText("🎭", groupImgX + groupImgSize/2, groupImgY + groupImgSize/2 + 15);
       }
 
       // ===== WELCOME CONTENT AREA =====
@@ -255,9 +255,9 @@ module.exports = {
 
       // Session message
       const sessionMessages = {
-        morning: "🌅 Have a great & positive morning!",
-        afternoon: "☀️ Have a great & positive afternoon!",
-        evening: "🌇 Have a great & positive evening!",
+        morning: "🥳 Have a great & positive morning!",
+        afternoon: "☠️ Have a great & positive afternoon!",
+        evening: "🫂 Have a great & positive evening!",
         night: "🌙 Have a great & positive night!"
       };
       
@@ -349,7 +349,7 @@ module.exports = {
       ctx.shadowColor = "rgba(0, 255, 136, 0.3)";
       ctx.shadowBlur = 8;
       
-      ctx.fillText("💎 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 💎 | ✨ Rasel Mahmud ✨", width/2, botNameY);
+      ctx.fillText("💎 Heli•LUMO 💎 | ✨ Rasel Mahmud ✨", width/2, botNameY);
       ctx.shadowBlur = 0;
 
       // ===== DECORATIVE BORDER =====

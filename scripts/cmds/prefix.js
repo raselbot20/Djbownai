@@ -148,7 +148,7 @@ module.exports = {
 				// 🔹 BOT NAME & OWNER INFO
 				const botName = "𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢";
 				const ownerName = "𝐑𝐚𝐬𝐞𝐥 𝐌𝐚𝐡𝐦𝐮𝐝";
-				const ownerLink = "https://www.facebook.com/share/1AcArr1zGL/";
+				const ownerLink = "https://www.facebook.com/profile.php?id=61587488309900";
 				
 				// ====================================================
 				// 🚀 OPTIMIZATION FOR FASTER RESPONSE

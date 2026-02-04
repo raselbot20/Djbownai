@@ -30,7 +30,7 @@ module.exports = {
         `🌍 𝐋𝐨𝐜𝐚𝐭𝐢𝐨𝐧: Mymensingh\n` +
         `🎓 𝐒𝐭𝐮𝐝𝐲: Rajshahi\n\n` +
         `🔗 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤:\n` +
-        `https://facebook.com/61586335299049\n\n` +
+        `https://www.facebook.com/profile.php?id=61587488309900\n\n` +
         `📺 𝐘𝐨𝐮𝐓𝐮𝐛𝐞:\n` +
         `https://youtube.com/@rmsilentgaming\n\n` +
         `💎 𝐁𝐨𝐭 𝐍𝐚𝐦𝐞: 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝐎\n` +

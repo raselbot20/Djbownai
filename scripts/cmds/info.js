@@ -30,7 +30,7 @@ module.exports = {
         `🌍 𝐋𝐨𝐜𝐚𝐭𝐢𝐨𝐧: Mymensingh\n` +
         `🎓 𝐒𝐭𝐮𝐝𝐲: Rajshahi\n\n` +
         `🔗 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤:\n` +
-        `https://www.facebook.com/profile.php?id=61587488309900\n\n` +
+        `https://facebook.com/61586335299049\n\n` +
         `📺 𝐘𝐨𝐮𝐓𝐮𝐛𝐞:\n` +
         `https://youtube.com/@rmsilentgaming\n\n` +
         `💎 𝐁𝐨𝐭 𝐍𝐚𝐦𝐞: 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝐎\n` +
@@ -40,7 +40,7 @@ module.exports = {
         `╚═══════════════════╝`;
       
       // Get profile picture
-      const imgURL = "https://graph.facebook.com/61586335299049/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662";
+      const imgURL = "https://graph.facebook.com/61587488309900/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662";
       const path = __dirname + "/cache/owner_info.jpg";
       
       // Create cache directory if not exists
@@ -104,7 +104,7 @@ module.exports = {
         `Failed to load owner information.\n\n` +
         `🔄 Please try again\n` +
         `👑 Developer: Rasel Mahmud\n` +
-        `🔗 https://facebook.com/61586335299049\n` +
+        `🔗 https://www.facebook.com/profile.php?id=61587488309900\n` +
         `╚═══════════════════╝`;
       
       await api.sendMessage(errorMessage, threadID, messageID);

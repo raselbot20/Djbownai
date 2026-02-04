@@ -6,12 +6,12 @@ const { createCanvas, loadImage } = require("canvas");
 module.exports = {
   config: {
     name: "age",
-    version: "1.1",
+    version: "1.2",
     author: "Rasel Mahmud",
     role: 0,
     countDown: 5,
     shortDescription: "Calculate age with stylish card",
-    longDescription: "Calculate age and show in stylish card with Bangladesh time",
+    longDescription: "Calculate age and show in stylish card",
     category: "utility",
     guide: {
       en: "{pn} [birthdate in YYYY-MM-DD format]\nExample: {pn} 2000-01-15"
@@ -61,9 +61,6 @@ module.exports = {
       const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
       const birthDayName = dayNames[birthdate.getDay()];
       
-      // Get current Bangladesh time with CORRECT timezone
-      const bangladeshTime = getBangladeshTime();
-
       // Format birthdate for display
       const formattedBirthdate = birthdate.toLocaleDateString('en-US', {
         year: 'numeric',
@@ -73,7 +70,7 @@ module.exports = {
 
       // Create canvas
       const width = 1200;
-      const height = 700;
+      const height = 650; // Reduced height since time section removed
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext("2d");
 
@@ -82,7 +79,7 @@ module.exports = {
 
       // Draw main content
       drawMainCard(ctx, width, height, birthdateStr, age, formattedBirthdate, zodiac, zodiacEmoji, 
-                   birthDayName, daysUntilBirthday, bangladeshTime);
+                   birthDayName, daysUntilBirthday);
 
       // Save image
       const cachePath = path.join(__dirname, "cache_age.png");
@@ -99,8 +96,6 @@ module.exports = {
 ⭐ Zodiac: ${zodiac} ${zodiacEmoji}
 🎁 Next birthday in: ${daysUntilBirthday} days
 📊 Born on: ${birthDayName}
-━━━━━━━━━━━━━━━━━━
-⏱️Time: ${bangladeshTime}
 ━━━━━━━━━━━━━━━━━━
 ✨ Powered by: 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 | Rasel Mahmud
 ╚═══════════════════╝`,
@@ -222,54 +217,6 @@ function getZodiacEmoji(zodiac) {
   return emojiMap[zodiac] || "⭐";
 }
 
-function getBangladeshTime() {
-  // Create date with Bangladesh timezone (UTC+6)
-  const now = new Date();
-  
-  // Convert to Bangladesh time (UTC+6)
-  const bangladeshOffset = 6 * 60; // 6 hours in minutes
-  const localOffset = now.getTimezoneOffset(); // in minutes
-  const bangladeshTime = new Date(now.getTime() + (bangladeshOffset + localOffset) * 60000);
-  
-  // Format the date
-  const options = { 
-    timeZone: 'Asia/Dhaka',
-    weekday: 'long',
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  };
-  
-  // Try to format with timezone
-  try {
-    return bangladeshTime.toLocaleString('en-BD', options);
-  } catch (error) {
-    // Fallback manual formatting
-    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    
-    const day = days[bangladeshTime.getDay()];
-    const month = months[bangladeshTime.getMonth()];
-    const date = bangladeshTime.getDate();
-    const year = bangladeshTime.getFullYear();
-    
-    let hours = bangladeshTime.getHours();
-    const minutes = bangladeshTime.getMinutes().toString().padStart(2, '0');
-    const seconds = bangladeshTime.getSeconds().toString().padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    
-    hours = hours % 12;
-    hours = hours ? hours : 12; // the hour '0' should be '12'
-    hours = hours.toString().padStart(2, '0');
-    
-    return `${day}, ${month} ${date}, ${year} at ${hours}:${minutes}:${seconds} ${ampm}`;
-  }
-}
-
 function drawBackground(ctx, width, height) {
   // Gradient background
   const gradient = ctx.createLinearGradient(0, 0, width, height);
@@ -304,7 +251,7 @@ function drawBackground(ctx, width, height) {
 }
 
 function drawMainCard(ctx, width, height, birthdateStr, age, formattedBirthdate, zodiac, zodiacEmoji, 
-                      birthDayName, daysUntilBirthday, bangladeshTime) {
+                      birthDayName, daysUntilBirthday) {
   
   const cardWidth = width - 100;
   const cardHeight = height - 100;
@@ -394,7 +341,6 @@ function drawMainCard(ctx, width, height, birthdateStr, age, formattedBirthdate,
   currentY += 65;
   
   drawInfoBox(column1X, currentY, "⭐", "Zodiac Sign", `${zodiac} ${zodiacEmoji}`, "#ffcc66");
-  currentY += 65;
 
   // Right column
   currentY = contentY;
@@ -412,8 +358,8 @@ function drawMainCard(ctx, width, height, birthdateStr, age, formattedBirthdate,
   
   drawInfoBox(column2X, currentY, "📈", "Total Minutes", age.totalMinutes.toLocaleString(), "#66ffcc");
 
-  // Detailed age section
-  const detailY = cardY + cardHeight - 180;
+  // Detailed age section (moved up since time section removed)
+  const detailY = cardY + cardHeight - 120;
   ctx.fillStyle = "rgba(255, 215, 0, 0.1)";
   ctx.beginPath();
   ctx.roundRect(cardX + 80, detailY, cardWidth - 160, 70, 15);
@@ -428,29 +374,12 @@ function drawMainCard(ctx, width, height, birthdateStr, age, formattedBirthdate,
   ctx.font = "bold 22px 'Segoe UI', Arial, sans-serif";
   ctx.fillText(`${age.years}y ${age.months}m ${age.days}d ${age.hours}h ${age.minutes}m ${age.seconds}s`, width / 2, detailY + 60);
 
-  // Bangladesh time section
-  const timeY = cardY + cardHeight - 80;
-  ctx.fillStyle = "rgba(0, 153, 76, 0.2)";
-  ctx.beginPath();
-  ctx.roundRect(cardX + 50, timeY, cardWidth - 100, 40, 10);
-  ctx.fill();
-
-  ctx.fillStyle = "#00ff88";
-  ctx.font = "bold 20px 'Segoe UI', Arial, sans-serif";
-  ctx.textAlign = "center";
-  
-  // Format time for display
-  const timeDisplay = bangladeshTime.length > 60 ? 
-    bangladeshTime.substring(0, 60) + "..." : 
-    bangladeshTime;
-    
-  ctx.fillText(`Time: ${timeDisplay}`, width / 2, timeY + 27);
-
-  // Footer credit
+  // Footer credit (moved up)
+  const footerY = cardY + cardHeight - 30;
   ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
   ctx.font = "italic 18px 'Segoe UI', Arial, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("✨ Powered by: Heli•LUMO | Created by Rasel Mahmud ✨", width / 2, cardY + cardHeight - 20);
+  ctx.fillText("✨ Powered by: Heli•LUMO | Created by Rasel Mahmud ✨", width / 2, footerY);
 
   // Corner decorations
   ctx.strokeStyle = "rgba(255, 215, 0, 0.3)";
@@ -504,4 +433,4 @@ if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D
     this.closePath();
     return this;
   };
-}
+    }

@@ -26,7 +26,7 @@ module.exports.config = {
   aliases: ["cmdstore", "commandstore", "sakurastore"],
   author: "Saimx69x",
   version: "2.0",
-  role: 0,
+  role: 2,
   countDown: 3,
   category: "owner",
   shortDescription: "Sakura Command Store",

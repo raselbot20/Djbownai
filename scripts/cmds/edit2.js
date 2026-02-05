@@ -23,7 +23,7 @@ module.exports = {
     role: 0,
     shortDescription: "Edit an image using text prompt",
     longDescription: "Only edits an existing image. Must reply to an image.",
-    category: "ai",
+    category: "AI-IMAGE-EDIT",
     guide: "{p}edit <prompt> (reply to an image)"
   },
 

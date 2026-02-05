@@ -12,7 +12,7 @@ module.exports = {
     role: 0,
     shortDescription: "Propose with custom image",
     longDescription: "Generate a propose image with avatars perfectly placed over characters’ heads (swapped).",
-    category: "fun",
+    category: "LOVE",
     guide: "{pn} @mention"
   },
 

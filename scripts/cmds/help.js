@@ -10,7 +10,7 @@ module.exports = {
     author: "Rasel Mahmud",
     countDown: 3,
     role: 0,
-    description: "🔹 Complete Help System with Full Author Credits 🔹",
+    description: "❖ Complete Help System with Full Author Credits ❖",
     category: "info",
     guide: {
       en: "{pn} - All commands\n{pn} [cmd] - Command details\n{pn} authors - All authors\n{pn} cat [category] - Category commands\n{pn} search [word] - Search"
@@ -498,11 +498,11 @@ module.exports = {
   // Helper functions
   getCategoryEmoji: function(category) {
     const emojiMap = {
-      "INFO": "📊", "MEDIA": "🖼️", "FUN": "🎮", "TOOLS": "🔧",
-      "GROUP": "👥", "ADMIN": "👑", "MUSIC": "🎵", "AI": "🤖",
-      "GENERAL": "🔹"
+      "INFO": "❖", "MEDIA": "❖", "FUN": "❖", "TOOLS": "",
+      "GROUP": "❖", "ADMIN": "👑", "MUSIC": "❖", "AI": "❖",
+      "GENERAL": "❖"
     };
-    return emojiMap[category] || "🔹";
+    return emojiMap[category] || "❖";
   },
 
   downloadImage: async function(url, outputPath) {

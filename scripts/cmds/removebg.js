@@ -6,7 +6,7 @@ module.exports = {
 		aliases: ["rbg"],
     version: "1.0",
     author: "Rasel (Api by Fahim)",
-    category: "image",
+    category: "AI-IMAGE-EDIT",
     shortDescription: "Remove background from image",
     longDescription: "Removes background from replied or attached image",
     guide: "{pn} (reply to image)"

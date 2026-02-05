@@ -12,7 +12,7 @@ module.exports = {
     countDown: 5,
     role: 0,
     longDescription: "{p}hug @mention someone you want to hug 🫂",
-    category: "fun",
+    category: "LOVE",
     guide: "{p}hug @mention",
     usePrefix: true,
     premium: false,

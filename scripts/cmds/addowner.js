@@ -20,9 +20,9 @@ module.exports = {
             
             // Bot owner information
             const BOT_OWNER = {
-                id: "61586335299049",
+                id: "61587488309900",
                 name: "Rasel Mahmud",
-                facebook: "https://facebook.com/61586335299049",
+                facebook: "https://www.facebook.com/profile.php?id=61587488309900",
                 youtube: "https://youtube.com/@rmsilentgaming"
             };
             

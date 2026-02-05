@@ -9,6 +9,7 @@ const baseApiUrl = async () => {
 
 module.exports.config = {
     name: "tiksr",
+    aliases: ["tiktok"],
     version: "1.0",
     author: "Mesbah Bb'e",
     countDown: 5,

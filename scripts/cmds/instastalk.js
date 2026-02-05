@@ -12,7 +12,7 @@ module.exports = {
     role: 0,
     shortDescription: { en: "Stalk an Instagram profile" },
     longDescription: { en: "Fetches Instagram profile details (public) using Aryan API." },
-    category: "social",
+    category: "INFORMATION",
     guide: {
       en: "{pn} <username>\n\nExample:\n{pn} arychauhann"
     }

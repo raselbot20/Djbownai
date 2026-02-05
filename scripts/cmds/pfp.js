@@ -5,7 +5,6 @@ const request = require("request");
 module.exports = {
   config: {
     name: "pfp",
-    aliases: ["avatar", "fc"],
     version: "1.0.0",
     author: "Rasel Mahmud",
     countDown: 3,

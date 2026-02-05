@@ -46,7 +46,7 @@ module.exports = {
     isPremium: true,
     requiredMoney: 1000,
     description: "Generate AI images with Midjourney",
-    category: "ai",
+    category: "AI-IMAGE",
     guide: { en: "{pn} [prompt]" }
   },
 

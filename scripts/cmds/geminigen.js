@@ -24,7 +24,7 @@ module.exports = {
  shortDescription: "Generate or edit images using text prompts",
  longDescription:
  "Generate a new image from a text prompt or edit an existing image by replying to it.",
- category: "ai",
+ category: "AI-IMAGE/EDIT",
  guide:
  "{p}geminigen <prompt>\n" +
  "{p}geminigen <prompt> (reply to an image to edit it)"

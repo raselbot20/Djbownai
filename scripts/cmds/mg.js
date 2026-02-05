@@ -8,7 +8,7 @@ module.exports = {
     role: 0,
     shortDescription: "Magic Image Generator",
     longDescription: "Generate AI images using Magic Generator API.",
-    category: "ai",
+    category: "AI-IMAGE",
     guide: "{p}mg <prompt>"
   },
 

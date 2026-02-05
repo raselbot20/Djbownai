@@ -6,7 +6,7 @@ module.exports.config = {
   role: 0,
   author: "Dipto",
   description: "flux Image Generator",
-  category: "Image gen",
+  category: "AI-IMAGE",
   guide: "{pn} [prompt] --ratio 1024x1024\n{pn} [prompt]",
   countDown: 15,
 };

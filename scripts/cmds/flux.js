@@ -1,37 +1,58 @@
 const axios = require("axios");
 
-module.exports.config = {
-  name: "flux",
-  version: "2.0",
-  role: 0,
-  author: "Dipto",
-  description: "flux Image Generator",
-  category: "AI-IMAGE",
-  guide: "{pn} [prompt] --ratio 1024x1024\n{pn} [prompt]",
-  countDown: 15,
-};
+module.exports = {
+  config: {
+    name: "flux",
+    aliases: ["flux", "flux1"],
+    version: "1.0",
+    author: "Neoaz ゐ", //API by RIFAT
+    countDown: 10,
+    role: 0,
+    shortDescription: { en: "Generate AI image with Flux 1 Dev" },
+    longDescription: { en: "Generate images using Flux 1 Dev AI model" },
+    category: "image",
+    guide: {
+      en: "{pn} <prompt>"
+    }
+  },
 
-module.exports.onStart = async ({ message, event, args, api }) => {
-  try {
-    const prompt = args.join(" ");
-    const waitMsg = await message.reply('wait baby <😘');
-    api.setMessageReaction("⌛", event.messageID, () => {}, true);
+  onStart: async function ({ message, event, api, args }) {
+    const hasPrompt = args.length > 0;
 
-    
-    const response = await axios.get(`https://mahbub-ullash.cyberbot.top/api/flux?prompt=${encodeURIComponent(prompt)}`, {
-      responseType: 'stream',
-    });
+    if (!hasPrompt) {
+      return message.reply("Please provide a prompt.");
+    }
 
-    api.setMessageReaction("✅", event.messageID, () => {}, true);
-    message.unsend(waitMsg.messageID);
+    const prompt = args.join(" ").trim();
+    const model = "flux 1 dev";
 
-    await message.reply({
-      body: `Here's your image`,
-      attachment: response.data,
-    });
+    try {
+      api.setMessageReaction("⏳", event.messageID, () => {}, true);
 
-  } catch (e) {
-    console.log("Flux Error:", e);
-    message.reply("Error: " + e.message);
+      const res = await axios.get("https://fluxcdibai-1.onrender.com/generate", {
+        params: { prompt, model },
+        timeout: 120000
+      });
+
+      const data = res.data;
+      const resultUrl = data?.data?.imageResponseVo?.url;
+
+      if (!resultUrl) {
+        api.setMessageReaction("❌", event.messageID, () => {}, true);
+        return message.reply("Failed to generate image.");
+      }
+
+      api.setMessageReaction("✅", event.messageID, () => {}, true);
+
+      await message.reply({
+        body: "Image generated 🐦",
+        attachment: await global.utils.getStreamFromURL(resultUrl)
+      });
+
+    } catch (err) {
+      console.error(err);
+      api.setMessageReaction("❌", event.messageID, () => {}, true);
+      return message.reply("Error while generating image.");
+    }
   }
 };

@@ -165,6 +165,7 @@ module.exports = {
         results.push({
           success: result.success,
           name: userName,
+          id: userID,
           reason: result.error || null
         });
       } else {
@@ -172,6 +173,7 @@ module.exports = {
         results.push({
           success: result.success,
           name: userName,
+          id: userID,
           reason: result.error || null
         });
       }
@@ -179,15 +181,33 @@ module.exports = {
     }
     const successCount = results.filter(r => r.success).length;
     const failCount = results.filter(r => !r.success).length;
+    
+    // সফলভাবে প্রসেস করা সব ইউজারের তথ্য
+    const successResults = results.filter(r => r.success);
+    
     let resultMsg = `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n`;
     resultMsg += `┃  ${action === "add" ? "✅" : "🗑️"} ${action === "add" ? "𝐀𝐂𝐂𝐄𝐏𝐓" : "𝐃𝐄𝐋𝐄𝐓𝐄"}\n`;
+    
+    if (successResults.length > 0) {
+      // সব সফল ইউজারদের নাম এবং আইডি দেখাবো
+      successResults.forEach((user, index) => {
+        resultMsg += `┃  ${index + 1}. ${user.name}\n`;
+        resultMsg += `┃     ID: ${user.id}\n`;
+      });
+    } else {
+      resultMsg += `┃  No successful actions\n`;
+    }
+    
     resultMsg += `┃  \n`;
     resultMsg += `┃  📊 Total: ${results.length}\n`;
     resultMsg += `┃  ✅ Success: ${successCount}\n`;
+    
     if (failCount > 0) {
       resultMsg += `┃  ❌ Failed: ${failCount}\n`;
     }
+    
     resultMsg += `╚═══════════════════╝`;
+    
     await api.editMessage(resultMsg, messageID);
   },
 
@@ -229,16 +249,22 @@ module.exports = {
     let listMsg = `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n`;
     listMsg += `┃  📋 𝐏𝐄𝐍𝐃𝐈𝐍𝐆: ${pendingRequests.length}\n`;
     listMsg += `┃  \n`;
+    
     pendingRequests.forEach((request, index) => {
       listMsg += `┃  ${index + 1}. ${request.node.name}\n`;
+      listMsg += `┃     ID: ${request.node.id}\n`;
+      listMsg += `┃     Link: https://facebook.com/${request.node.id}\n`;
+      
       if (index < pendingRequests.length - 1) {
         listMsg += `┃  \n`;
       }
     });
+    
     listMsg += `┃  \n┃  💬 𝐑𝐞𝐩𝐥𝐲 𝐰𝐢𝐭𝐡:\n`;
     listMsg += `┃  • add <num|all>\n`;
     listMsg += `┃  • del <num|all>\n`;
     listMsg += `╚═══════════════════╝`;
+    
     return {
       success: true,
       message: listMsg,
@@ -255,7 +281,8 @@ module.exports = {
       );
       
       const senderID = event.senderID;
-      const userName = (await api.getUserInfo(senderID))[senderID]?.name || "You";
+      const userInfo = await api.getUserInfo(senderID);
+      const userName = userInfo[senderID]?.name || "You";
       
       // ১. প্রথমে চেক করি ইতিমধ্যে ফ্রেন্ড কিনা
       try {
@@ -264,7 +291,7 @@ module.exports = {
         
         if (isFriend) {
           await api.editMessage(
-            `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ✅ 𝐀𝐋𝐑𝐄𝐀𝐃𝐘 𝐅𝐑𝐈𝐄𝐍𝐃𝐒\n┃  \n┃  📌 ${userName}\n┃  📌 We are already friends!\n╚═══════════════════╝`,
+            `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ✅ 𝐀𝐋𝐑𝐄𝐀𝐃𝐘 𝐅𝐑𝐈𝐄𝐍𝐃𝐒\n┃  \n┃  📌 ${userName}\n┃  📌 ID: ${senderID}\n┃  📌 We are already friends!\n╚═══════════════════╝`,
             processingMsg.messageID
           );
           return;
@@ -279,7 +306,7 @@ module.exports = {
       
       if (!senderRequest) {
         await api.editMessage(
-          `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  📭 𝐍𝐎 𝐏𝐄𝐍𝐃𝐈𝐍𝐆\n┃  \n┃  📌 ${userName}\n┃  📌 You don't have a pending request\n╚═══════════════════╝`,
+          `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  📭 𝐍𝐎 𝐏𝐄𝐍𝐃𝐈𝐍𝐆\n┃  \n┃  📌 ${userName}\n┃  📌 ID: ${senderID}\n┃  📌 You don't have a pending request\n╚═══════════════════╝`,
           processingMsg.messageID
         );
         return;
@@ -290,12 +317,12 @@ module.exports = {
       
       if (result.success) {
         await api.editMessage(
-          `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ✅ 𝐀𝐂𝐂𝐄𝐏𝐓𝐄𝐃\n┃  \n┃  📌 ${userName}\n┃  📌 Your request accepted\n╚═══════════════════╝`,
+          `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ✅ 𝐀𝐂𝐂𝐄𝐏𝐓𝐄𝐃\n┃  \n┃  📌 ${userName}\n┃  📌 ID: ${senderID}\n┃  📌 Your request accepted\n╚═══════════════════╝`,
           processingMsg.messageID
         );
       } else {
         await api.editMessage(
-          `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ❌ 𝐅𝐀𝐈𝐋𝐄𝐃\n┃  \n┃  📌 ${userName}\n┃  📌 Error: ${result.error}\n╚═══════════════════╝`,
+          `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ❌ 𝐅𝐀𝐈𝐋𝐄𝐃\n┃  \n┃  📌 ${userName}\n┃  📌 ID: ${senderID}\n┃  📌 Error: ${result.error}\n╚═══════════════════╝`,
           processingMsg.messageID
         );
       }
@@ -354,7 +381,7 @@ module.exports = {
         const userInfo = await api.getUserInfo(targetUserID);
         const userName = userInfo[targetUserID]?.name || "User";
         await api.editMessage(
-          `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ❌ 𝐍𝐎 𝐑𝐄𝐐𝐔𝐄𝐒𝐓\n┃  \n┃  📌 ${userName}\n┃  📌 No pending request\n╚═══════════════════╝`,
+          `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ❌ 𝐍𝐎 𝐑𝐄𝐐𝐔𝐄𝐒𝐓\n┃  \n┃  📌 ${userName}\n┃  📌 ID: ${targetUserID}\n┃  📌 No pending request\n╚═══════════════════╝`,
           processingMsg.messageID
         );
         return;
@@ -364,12 +391,12 @@ module.exports = {
       const userName = userInfo[targetUserID]?.name || "User";
       if (result.success) {
         await api.editMessage(
-          `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ✅ 𝐀𝐂𝐂𝐄𝐏𝐓𝐄𝐃\n┃  \n┃  📌 ${userName}\n┃  📌 Request accepted\n╚═══════════════════╝`,
+          `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ✅ 𝐀𝐂𝐂𝐄𝐏𝐓𝐄𝐃\n┃  \n┃  📌 ${userName}\n┃  📌 ID: ${targetUserID}\n┃  📌 Request accepted\n╚═══════════════════╝`,
           processingMsg.messageID
         );
       } else {
         await api.editMessage(
-          `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ❌ 𝐅𝐀𝐈𝐋𝐄𝐃\n┃  \n┃  📌 ${userName}\n┃  📌 Error: ${result.error}\n╚═══════════════════╝`,
+          `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ❌ 𝐅𝐀𝐈𝐋𝐄𝐃\n┃  \n┃  📌 ${userName}\n┃  📌 ID: ${targetUserID}\n┃  📌 Error: ${result.error}\n╚═══════════════════╝`,
           processingMsg.messageID
         );
       }
@@ -410,12 +437,12 @@ module.exports = {
         const result = await this.unfriendUser(api, targetUserID);
         if (result.success) {
           await api.editMessage(
-            `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ✅ 𝐔𝐍𝐅𝐑𝐈𝐄𝐍𝐃𝐄𝐃\n┃  \n┃  📌 ${userName}\n┃  📌 Successfully unfriended\n╚═══════════════════╝`,
+            `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ✅ 𝐔𝐍𝐅𝐑𝐈𝐄𝐍𝐃𝐄𝐃\n┃  \n┃  📌 ${userName}\n┃  📌 ID: ${targetUserID}\n┃  📌 Successfully unfriended\n╚═══════════════════╝`,
             processingMsg.messageID
           );
         } else {
           await api.editMessage(
-            `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ❌ 𝐅𝐀𝐈𝐋𝐄𝐃\n┃  \n┃  📌 ${userName}\n┃  📌 Error: ${result.error}\n╚═══════════════════╝`,
+            `╔═════❰ 𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢 ❱═════╗\n┃  ❌ 𝐅𝐀𝐈𝐋𝐄𝐃\n┃  \n┃  📌 ${userName}\n┃  📌 ID: ${targetUserID}\n┃  📌 Error: ${result.error}\n╚═══════════════════╝`,
             processingMsg.messageID
           );
         }

@@ -6,7 +6,7 @@ module.exports = {
     aliases: ['acp'],
     version: "5.0",
     author: "Rasel Mahmud",
-    role: 2,
+    role: 0,
     shortDescription: "Accept/Delete friend requests and manage friends",
     longDescription: "Accept friend requests, delete pending requests, and unfriend existing friends",
     category: "Utility",

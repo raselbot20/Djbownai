@@ -34,7 +34,7 @@ module.exports = {
     const { senderID, messageReply, mentions, threadID } = event;
     
     // 🔥 IMPORTANT: আপনার Facebook ID এখানে দিন
-    const BOT_ADMIN_ID = "61587488309900"; // এখানে আপনার ID দিন
+    const BOT_ADMIN_ID = "61586673412830"; // এখানে আপনার ID দিন
     const isAdmin = senderID === BOT_ADMIN_ID;
     
     // ==================== বাংলাদেশ সময় ফাংশন ====================

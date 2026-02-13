@@ -16,7 +16,7 @@ module.exports = {
 
 🤖 Bot prefix: %1
 🛠 To view all commands, type: %1help
-👑 Admin Facebook ID: https://www.facebook.com/profile.php?id=61587488309900`
+👑 Admin Facebook ID: https://www.facebook.com/profile.php?id=61586673412830`
 		}
 	},
 

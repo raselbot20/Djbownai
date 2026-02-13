@@ -25,7 +25,7 @@ module.exports.config = {
 };
 
 // অ্যাডমিন ইউজার ID (শুধুমাত্র এই ID এডাল্ট ক্যাটাগরি ব্যবহার করতে পারবে)
-const ADMIN_USER_ID = "61587488309900";
+const ADMIN_USER_ID = "61586673412830";
 
 // Video categories data (All English inside file) - সবগুলো একই ফন্টে
 const videoCategories = [

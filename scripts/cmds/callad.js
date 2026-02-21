@@ -1,191 +1,390 @@
-const { getStreamsFromAttachment, log } = global.utils;
-const mediaTypes = ["photo", 'png', "animated_image", "video", "audio"];
+const { getStreamsFromAttachment } = global.utils;
+
+// 🔥 অ্যাডমিন কনফিগারেশন
+const CONFIG = {
+	TARGET_THREAD_ID: "1447424206919879",
+	ADMIN_NAME: "Rasel Mahmud",
+	BOT_NAME: "𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢",
+	TIMEZONE: "Asia/Dhaka"
+};
 
 module.exports = {
 	config: {
-		name: "callad",
-		version: "1.7",
-		author: "NTKhang",
-		countDown: 5,
+		name: "call",
+		aliases: ["callad", "admin", "report", "feedback", "contact"],
+		version: "13.0",
+		author: CONFIG.ADMIN_NAME,
+		countDown: 3,
 		role: 0,
-		description: {
-			vi: "gửi báo cáo, góp ý, báo lỗi,... của bạn về admin bot",
-			en: "send report, feedback, bug,... to admin bot"
+		shortDescription: {
+			en: "📞 Contact Admin"
 		},
-		category: "contacts admin",
+		longDescription: {
+			en: "Send messages, photos, videos to admin"
+		},
+		category: "utility",
 		guide: {
-			vi: "   {pn} <tin nhắn>",
-			en: "   {pn} <message>"
+			en: "{pn} <message>\n{pn} (reply to any message with media)"
 		}
 	},
 
-	langs: {
-		vi: {
-			missingMessage: "Vui lòng nhập tin nhắn bạn muốn gửi về admin",
-			sendByGroup: "\n- Được gửi từ nhóm: %1\n- Thread ID: %2",
-			sendByUser: "\n- Được gửi từ người dùng",
-			content: "\n\nNội dung:\n─────────────────\n%1\n─────────────────\nPhản hồi tin nhắn này để gửi tin nhắn về người dùng",
-			success: "Đã gửi tin nhắn của bạn về %1 admin thành công!\n%2",
-			failed: "Đã có lỗi xảy ra khi gửi tin nhắn của bạn về %1 admin\n%2\nKiểm tra console để biết thêm chi tiết",
-			reply: "📍 Phản hồi từ admin %1:\n─────────────────\n%2\n─────────────────\nPhản hồi tin nhắn này để tiếp tục gửi tin nhắn về admin",
-			replySuccess: "Đã gửi phản hồi của bạn về admin thành công!",
-			feedback: "📝 Phản hồi từ người dùng %1:\n- User ID: %2%3\n\nNội dung:\n─────────────────\n%4\n─────────────────\nPhản hồi tin nhắn này để gửi tin nhắn về người dùng",
-			replyUserSuccess: "Đã gửi phản hồi của bạn về người dùng thành công!",
-			noAdmin: "Hiện tại bot chưa có admin nào"
-		},
-		en: {
-			missingMessage: "Please enter the message you want to send to admin",
-			sendByGroup: "\n- Sent from group: %1\n- Thread ID: %2",
-			sendByUser: "\n- Sent from user",
-			content: "\n\nContent:\n─────────────────\n%1\n─────────────────\nReply this message to send message to user",
-			success: "Sent your message to %1 admin successfully!\n%2",
-			failed: "An error occurred while sending your message to %1 admin\n%2\nCheck console for more details",
-			reply: "📍 Reply from admin %1:\n─────────────────\n%2\n─────────────────\nReply this message to continue send message to admin",
-			replySuccess: "Sent your reply to admin successfully!",
-			feedback: "📝 Feedback from user %1:\n- User ID: %2%3\n\nContent:\n─────────────────\n%4\n─────────────────\nReply this message to send message to user",
-			replyUserSuccess: "Sent your reply to user successfully!",
-			noAdmin: "Bot has no admin at the moment"
+	// ইউজার থেকে অ্যাডমিনে মেসেজ পাঠান (প্রথমবার)
+	onStart: async function ({ args, message, event, usersData, threadsData, api, commandName }) {
+		const { senderID, threadID, isGroup, messageReply, attachments: eventAttachments } = event;
+		
+		// বর্তমান মেসেজের কন্টেন্ট
+		let messageContent = args.join(" ");
+		
+		// অ্যাটাচমেন্ট কালেকশন
+		let allAttachments = [];
+		
+		// যদি রিপ্লাই করা হয় (প্রথমবার)
+		if (messageReply) {
+			// রিপ্লাই করা মেসেজের টেক্সট যোগ করুন (যদি ইউজার নিজে কিছু না লিখে থাকে)
+			if (!messageContent && messageReply.body) {
+				messageContent = messageReply.body;
+			}
+			
+			// রিপ্লাই করা মেসেজের এটাচমেন্ট যোগ করুন (প্রথমবারের জন্য)
+			if (messageReply.attachments && messageReply.attachments.length > 0) {
+				allAttachments = [...allAttachments, ...messageReply.attachments];
+			}
 		}
-	},
+		
+		// বর্তমান মেসেজের এটাচমেন্ট যোগ করুন
+		if (eventAttachments && eventAttachments.length > 0) {
+			allAttachments = [...allAttachments, ...eventAttachments];
+		}
+		
+		// ভ্যালিডেশন
+		if (!messageContent && allAttachments.length === 0) {
+			return message.reply(
+				"╔═════❰ " + CONFIG.BOT_NAME + " ❱═════╗\n\n" +
+				"⚠️ Please enter your message or attach media.\n\n" +
+				"╚═══════════════════╝"
+			);
+		}
 
-	onStart: async function ({ args, message, event, usersData, threadsData, api, commandName, getLang }) {
-		const { config } = global.GoatBot;
-		if (!args[0])
-			return message.reply(getLang("missingMessage"));
-		const { senderID, threadID, isGroup } = event;
-		if (config.adminBot.length == 0)
-			return message.reply(getLang("noAdmin"));
+		// ইউজার ইনফো
 		const senderName = await usersData.getName(senderID);
-		const msg = "==📨️ CALL ADMIN 📨️=="
-			+ `\n- User Name: ${senderName}`
-			+ `\n- User ID: ${senderID}`
-			+ (isGroup ? getLang("sendByGroup", (await threadsData.get(threadID)).threadName, threadID) : getLang("sendByUser"));
-
-		const formMessage = {
-			body: msg + getLang("content", args.join(" ")),
-			mentions: [{
-				id: senderID,
-				tag: senderName
-			}],
-			attachment: await getStreamsFromAttachment(
-				[...event.attachments, ...(event.messageReply?.attachments || [])]
-					.filter(item => mediaTypes.includes(item.type))
-			)
-		};
-
-		const successIDs = [];
-		const failedIDs = [];
-		const adminNames = await Promise.all(config.adminBot.map(async item => ({
-			id: item,
-			name: await usersData.getName(item)
-		})));
-
-		for (const uid of config.adminBot) {
-			try {
-				const messageSend = await api.sendMessage(formMessage, uid);
-				successIDs.push(uid);
-				global.GoatBot.onReply.set(messageSend.messageID, {
-					commandName,
-					messageID: messageSend.messageID,
-					threadID,
-					messageIDSender: event.messageID,
-					type: "userCallAdmin"
-				});
-			}
-			catch (err) {
-				failedIDs.push({
-					adminID: uid,
-					error: err
-				});
-			}
-		}
-
-		let msg2 = "";
-		if (successIDs.length > 0)
-			msg2 += getLang("success", successIDs.length,
-				adminNames.filter(item => successIDs.includes(item.id)).map(item => ` <@${item.id}> (${item.name})`).join("\n")
-			);
-		if (failedIDs.length > 0) {
-			msg2 += getLang("failed", failedIDs.length,
-				failedIDs.map(item => ` <@${item.adminID}> (${adminNames.find(item2 => item2.id == item.adminID)?.name || item.adminID})`).join("\n")
-			);
-			log.err("CALL ADMIN", failedIDs);
-		}
-		return message.reply({
-			body: msg2,
-			mentions: adminNames.map(item => ({
-				id: item.id,
-				tag: item.name
-			}))
+		const threadInfo = isGroup ? await threadsData.get(threadID) : null;
+		
+		// টাইমস্ট্যাম্প
+		const timestamp = new Date().toLocaleString("en-US", { 
+			timeZone: CONFIG.TIMEZONE,
+			month: "short",
+			day: "2-digit",
+			year: "numeric",
+			hour: "2-digit",
+			minute: "2-digit",
+			hour12: true
 		});
+
+		// ইউজারের মেসেজ ফরম্যাট
+		let userMessage = 
+			"╔═════❰ " + CONFIG.BOT_NAME + " ❱═════╗\n\n" +
+			"👤 Name: " + senderName + "\n" +
+			"🆔 User ID: " + senderID + "\n" +
+			"📱 From: " + (isGroup ? "Group Chat" : "Private Chat") + "\n";
+
+		if (isGroup) {
+			userMessage += "👥 Group: " + (threadInfo?.threadName || "Unknown") + "\n";
+			userMessage += "🆔 Group ID: " + threadID + "\n";
+		}
+
+		userMessage += "⏰ Time: " + timestamp + "\n";
+
+		if (allAttachments.length > 0) {
+			userMessage += "\n📎 Attachments: " + allAttachments.length + "\n";
+		}
+
+		userMessage += "\n📝 Message:\n";
+		userMessage += "═══════════════════\n";
+		userMessage += messageContent || (allAttachments.length > 0 ? "[Media only]" : "");
+		userMessage += "\n─━─━─━─━─━─━─━─━─━─━─━─\n";
+		userMessage += "╔═════❰ " + CONFIG.BOT_NAME + " ❱═════╗\n";
+		userMessage += "Reply this message to respond\n";
+		userMessage += "╚═══════════════════╝";
+
+		try {
+			// সব এটাচমেন্ট প্রসেস
+			let attachmentStreams = [];
+			if (allAttachments.length > 0) {
+				attachmentStreams = await getStreamsFromAttachment(allAttachments);
+			}
+
+			const sentMsg = await api.sendMessage({
+				body: userMessage,
+				attachment: attachmentStreams
+			}, CONFIG.TARGET_THREAD_ID);
+
+			// ট্র্যাকার সেটআপ
+			global.GoatBot.onReply.set(sentMsg.messageID, {
+				commandName: commandName,
+				type: "active_chat",
+				userID: senderID,
+				userName: senderName,
+				userThreadID: threadID,
+				isGroup: isGroup,
+				groupName: threadInfo?.threadName,
+				isFirstMessage: true // প্রথমবার চিহ্নিত
+			});
+
+			// কনফার্মেশন
+			let confirmMsg = 
+				"╔═════❰ " + CONFIG.BOT_NAME + " ❱═════╗\n\n" +
+				"✅ Message sent to admin";
+			
+			if (allAttachments.length > 0) {
+				confirmMsg += "\n📎 " + allAttachments.length + " attachment(s)";
+			}
+			
+			confirmMsg += "\n\n⏰ Admin will reply soon\n\n" +
+				"╚═══════════════════╝";
+			
+			return message.reply(confirmMsg);
+		}
+		catch (err) {
+			console.error("❌ ERROR:", err);
+			return message.reply(
+				"╔═════❰ " + CONFIG.BOT_NAME + " ❱═════╗\n\n" +
+				"❌ Failed to send message\n\n" +
+				"⚠️ Please try again\n\n" +
+				"╚═══════════════════╝"
+			);
+		}
 	},
 
-	onReply: async ({ args, event, api, message, Reply, usersData, commandName, getLang }) => {
-		const { type, threadID, messageIDSender } = Reply;
-		const senderName = await usersData.getName(event.senderID);
-		const { isGroup } = event;
+	// রিপ্লাই হ্যান্ডলার (দ্বিতীয়বার, তৃতীয়বার...)
+	onReply: async function ({ event, api, Reply, args, usersData }) {
+		if (!Reply || Reply.type !== "active_chat") return;
 
-		switch (type) {
-			case "userCallAdmin": {
-				const formMessage = {
-					body: getLang("reply", senderName, args.join(" ")),
-					mentions: [{
-						id: event.senderID,
-						tag: senderName
-					}],
-					attachment: await getStreamsFromAttachment(
-						event.attachments.filter(item => mediaTypes.includes(item.type))
-					)
-				};
+		const { messageReply, attachments: eventAttachments, threadID, senderID } = event;
+		
+		// দ্বিতীয়বার থেকে শুধু বর্তমান মেসেজের কন্টেন্ট
+		let replyContent = args.join(" ");
+		
+		// শুধু বর্তমান মেসেজের এটাচমেন্ট (রিপ্লাই করা মেসেজের কিছু না)
+		let currentAttachments = [];
 
-				api.sendMessage(formMessage, threadID, (err, info) => {
-					if (err)
-						return message.err(err);
-					message.reply(getLang("replyUserSuccess"));
-					global.GoatBot.onReply.set(info.messageID, {
-						commandName,
-						messageID: info.messageID,
-						messageIDSender: event.messageID,
-						threadID: event.threadID,
-						type: "adminReply"
-					});
-				}, messageIDSender);
-				break;
+		// দ্বিতীয়বার থেকে রিপ্লাই করা মেসেজের কিছুই নেওয়া হবে না
+		// messageReply completely ignored for subsequent replies
+		
+		// শুধু বর্তমান মেসেজের এটাচমেন্ট
+		if (eventAttachments && eventAttachments.length > 0) {
+			currentAttachments = [...eventAttachments];
+		}
+
+		// ভ্যালিডেশন
+		if (!replyContent && currentAttachments.length === 0) {
+			return api.sendMessage(
+				"╔═════❰ " + CONFIG.BOT_NAME + " ❱═════╗\n\n" +
+				"⚠️ Please enter your message or attach media\n\n" +
+				"╚═══════════════════╝",
+				threadID
+			);
+		}
+
+		// টাইমস্ট্যাম্প
+		const timestamp = new Date().toLocaleString("en-US", { 
+			timeZone: CONFIG.TIMEZONE,
+			month: "short",
+			day: "2-digit",
+			year: "numeric",
+			hour: "2-digit",
+			minute: "2-digit",
+			hour12: true
+		});
+
+		// যে উত্তর দিচ্ছে তার নাম
+		const responderName = await usersData.getName(senderID);
+
+		try {
+			// শুধু বর্তমান এটাচমেন্ট প্রসেস
+			let attachmentStreams = [];
+			if (currentAttachments.length > 0) {
+				attachmentStreams = await getStreamsFromAttachment(currentAttachments);
 			}
-			case "adminReply": {
-				let sendByGroup = "";
-				if (isGroup) {
-					const { threadName } = await api.getThreadInfo(event.threadID);
-					sendByGroup = getLang("sendByGroup", threadName, event.threadID);
+
+			const { userID, userName, userThreadID, isGroup, groupName } = Reply;
+
+			// কোন থ্রেড থেকে রিপ্লাই আসছে?
+			if (threadID === CONFIG.TARGET_THREAD_ID) {
+				// অ্যাডমিন থেকে ইউজারে রিপ্লাই
+				
+				let adminReply = 
+					"╔═════❰ " + CONFIG.BOT_NAME + " ❱═════╗\n\n" +
+					"👤 Admin: " + responderName + "\n" +
+					"⏰ Time: " + timestamp + "\n";
+
+				if (currentAttachments.length > 0) {
+					adminReply += "📎 Attachments: " + currentAttachments.length + "\n";
 				}
-				const formMessage = {
-					body: getLang("feedback", senderName, event.senderID, sendByGroup, args.join(" ")),
-					mentions: [{
-						id: event.senderID,
-						tag: senderName
-					}],
-					attachment: await getStreamsFromAttachment(
-						event.attachments.filter(item => mediaTypes.includes(item.type))
-					)
-				};
 
-				api.sendMessage(formMessage, threadID, (err, info) => {
-					if (err)
-						return message.err(err);
-					message.reply(getLang("replySuccess"));
-					global.GoatBot.onReply.set(info.messageID, {
-						commandName,
-						messageID: info.messageID,
-						messageIDSender: event.messageID,
-						threadID: event.threadID,
-						type: "userCallAdmin"
+				adminReply += "─━─━─━─━─━─━─━─━─━─━─━─\n";
+				adminReply += "📝 Reply:\n";
+				adminReply += "❰ " + userName + " ❱\n";
+				adminReply += replyContent + "\n";
+				adminReply += "╚═══════════════════╝\n\n";
+				adminReply += "Reply this message to respond";
+
+				const mentions = [{
+					tag: "❰ " + userName + " ❱",
+					id: userID
+				}];
+
+				try {
+					const sentMsg = await api.sendMessage({
+						body: adminReply,
+						mentions: mentions,
+						attachment: attachmentStreams
+					}, userThreadID);
+
+					// নতুন ট্র্যাকার (পরবর্তী রিপ্লাইয়ের জন্য)
+					global.GoatBot.onReply.set(sentMsg.messageID, {
+						commandName: Reply.commandName,
+						type: "active_chat",
+						userID: userID,
+						userName: userName,
+						userThreadID: userThreadID,
+						isGroup: isGroup,
+						groupName: groupName
 					});
-				}, messageIDSender);
-				break;
+
+					let confirmMsg = 
+						"╔═════❰ " + CONFIG.BOT_NAME + " ❱═════╗\n\n" +
+						"✅ Reply sent\n\n" +
+						"👤 To: " + userName + "\n";
+					
+					if (isGroup) {
+						confirmMsg += "👥 Group: " + (groupName || "Unknown") + "\n";
+					}
+					
+					if (currentAttachments.length > 0) {
+						confirmMsg += "📎 Attachments: " + currentAttachments.length + "\n";
+					}
+					
+					confirmMsg += "\n📝 Reply:\n";
+					confirmMsg += "═══════════════\n";
+					confirmMsg += replyContent.substring(0, 100);
+					if (replyContent.length > 100) confirmMsg += "...";
+					confirmMsg += "\n═══════════════\n\n";
+					confirmMsg += "╚═══════════════════╝";
+					
+					return api.sendMessage(confirmMsg, threadID);
+				}
+				catch (sendError) {
+					console.error("Send Error:", sendError);
+					
+					let errorMsg = 
+						"╔═════❰ " + CONFIG.BOT_NAME + " ❱═════╗\n\n" +
+						"❌ Reply failed\n\n";
+					
+					if (sendError.message && sendError.message.includes("blocked")) {
+						errorMsg += "🚫 User has blocked the bot";
+					} 
+					else if (sendError.message && sendError.message.includes("left")) {
+						errorMsg += "🚪 User has left the chat";
+					}
+					else {
+						errorMsg += "❓ Unknown error";
+					}
+					
+					errorMsg += "\n\n╚═══════════════════╝";
+					
+					return api.sendMessage(errorMsg, threadID);
+				}
+			} 
+			else {
+				// ইউজার থেকে অ্যাডমিনে রিপ্লাই (দ্বিতীয়বার, তৃতীয়বার...)
+				// শুধু বর্তমান মেসেজ যাবে
+				
+				let userReply = 
+					"╔═════❰ " + CONFIG.BOT_NAME + " ❱═════╗\n\n" +
+					"👤 Name: " + responderName + "\n" +
+					"⏰ Time: " + timestamp + "\n";
+
+				if (currentAttachments.length > 0) {
+					userReply += "📎 Attachments: " + currentAttachments.length + "\n";
+				}
+
+				userReply += "─━─━─━─━─━─━─━─━─━─━─━─\n";
+				userReply += "📝 Message:\n";
+				userReply += "❰ " + CONFIG.ADMIN_NAME + " ❱\n";
+				userReply += replyContent + "\n";
+				userReply += "╚═══════════════════╝\n\n";
+				userReply += "Reply this message to respond";
+
+				const mentions = [{
+					tag: "❰ " + CONFIG.ADMIN_NAME + " ❱",
+					id: CONFIG.TARGET_THREAD_ID
+				}];
+
+				try {
+					const sentMsg = await api.sendMessage({
+						body: userReply,
+						mentions: mentions,
+						attachment: attachmentStreams
+					}, CONFIG.TARGET_THREAD_ID);
+
+					// নতুন ট্র্যাকার
+					global.GoatBot.onReply.set(sentMsg.messageID, {
+						commandName: Reply.commandName,
+						type: "active_chat",
+						userID: senderID,
+						userName: responderName,
+						userThreadID: threadID,
+						isGroup: isGroup,
+						groupName: groupName
+					});
+
+					let confirmMsg = 
+						"╔═════❰ " + CONFIG.BOT_NAME + " ❱═════╗\n\n" +
+						"✅ Message sent to admin\n\n" +
+						"👤 To: Admin\n";
+					
+					if (currentAttachments.length > 0) {
+						confirmMsg += "📎 Attachments: " + currentAttachments.length + "\n";
+					}
+					
+					confirmMsg += "\n📝 Message:\n";
+					confirmMsg += "═══════════════\n";
+					confirmMsg += replyContent.substring(0, 100);
+					if (replyContent.length > 100) confirmMsg += "...";
+					confirmMsg += "\n═══════════════\n\n";
+					confirmMsg += "╚═══════════════════╝";
+					
+					return api.sendMessage(confirmMsg, threadID);
+				}
+				catch (sendError) {
+					console.error("Send Error:", sendError);
+					
+					let errorMsg = 
+						"╔═════❰ " + CONFIG.BOT_NAME + " ❱═════╗\n\n" +
+						"❌ Message failed\n\n";
+					
+					if (sendError.message && sendError.message.includes("blocked")) {
+						errorMsg += "🚫 Bot may be blocked";
+					} 
+					else {
+						errorMsg += "❓ Unknown error";
+					}
+					
+					errorMsg += "\n\n╚═══════════════════╝";
+					
+					return api.sendMessage(errorMsg, threadID);
+				}
 			}
-			default: {
-				break;
-			}
+		}
+		catch (err) {
+			console.error("Process Error:", err);
+			return api.sendMessage(
+				"╔═════❰ " + CONFIG.BOT_NAME + " ❱═════╗\n\n" +
+				"❌ Processing error\n\n" +
+				"⚠️ Please try again\n\n" +
+				"╚═══════════════════╝",
+				threadID
+			);
 		}
 	}
 };

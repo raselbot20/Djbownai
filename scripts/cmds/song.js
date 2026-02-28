@@ -8,6 +8,7 @@ const CACHE_DIR = path.join(__dirname, "cache");
 module.exports = {
   config: {
     name: "song",
+    aliases: ["play", "gan", "music",
     version: "3.1",
     author: "Rasel Mahmud",
     countDown: 5,

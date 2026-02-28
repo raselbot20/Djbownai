@@ -28,8 +28,8 @@ async function toFont(text, id = 21) {
 
 module.exports = {
   config: {
-    name: "pair7",
-    aliases: ["lovepair7", "match7"],
+    name: "pair4",
+    aliases: ["lovepair4", "match4"],
     author: "Saimx69x",
     version: "2.0",
     role: 0,

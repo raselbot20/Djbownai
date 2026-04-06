@@ -21,7 +21,7 @@ module.exports = {
         const { threadID, messageID, senderID } = event;
         
         // বট এডমিনের আইডি (আপনার আইডি)
-        const BOT_ADMIN_ID = "61586673412830";
+        const BOT_ADMIN_ID = "61575478043142";
         
         // এডমিনের জন্য ইনফিনিটি ব্যালেন্স
         const INFINITY_BALANCE = "999999999999999999999999999999999999999999999999999999999999";

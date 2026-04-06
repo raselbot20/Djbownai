@@ -183,6 +183,25 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
 
         const prefix = getPrefix(threadID);
         const role = getRole(threadData, senderID);
+        
+        // No Prefix Configuration Fix
+        const hasPrefix = body ? body.startsWith(prefix) : false;
+        let hasNoPrefix = false;
+        
+        // Check if no prefix is enabled for admin/dev
+        if (config.noPrefix === "none") {
+            hasNoPrefix = false;
+        } else if (config.noPrefix === true) {
+            // Only Dev (role 4) can use no prefix
+            if (role === 4) hasNoPrefix = true;
+        } else {
+            // Admin (role 2) and Dev (role 4) can use no prefix
+            if (role === 2 || role === 4) hasNoPrefix = true;
+        }
+        
+        // If no prefix and not allowed, return early for command detection
+        const canUseCommand = hasPrefix || hasNoPrefix;
+        
         const parameters = {
             api, usersData, threadsData, message, event,
             userModel, threadModel, prefix, dashBoardModel,
@@ -224,7 +243,7 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
                 event.mentions = { [event.messageReply.senderID]: "" };
             } else {
                 // FALLBACK: Try to resolve the first tag like @Arisa by looking up group members
-                const tagMatch = body.match(/@([^ ]+)/);
+                const tagMatch = body ? body.match(/@([^ ]+)/) : null;
                 if (tagMatch) {
                     const tagName = tagMatch[1].toLowerCase();
                     const info = await api.getThreadInfo(threadID);
@@ -250,10 +269,22 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
             }
 
             // —————————————— CHECK USE BOT —————————————— //
-            if (!body || !body.startsWith(prefix))
+            if (!canUseCommand)
                 return;
+                
+            if (!body) return;
+            
             const dateNow = Date.now();
-            const args = body.slice(prefix.length).trim().split(/ +/);
+            let args;
+            
+            // Handle both prefix and no-prefix cases
+            if (hasPrefix) {
+                args = body.slice(prefix.length).trim().split(/ +/);
+            } else {
+                // No prefix case - whole body is the command
+                args = body.trim().split(/ +/);
+            }
+            
             // ————————————  CHECK HAS COMMAND ——————————— //
             let commandName = args.shift().toLowerCase();
             let command = GoatBot.commands.get(commandName) || GoatBot.commands.get(GoatBot.aliases.get(commandName));
@@ -281,21 +312,27 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
                     return body_.replace(new RegExp(`^${prefix_}(\\s+|)${commandName_}`, "i"), "").trim();
                 }
                 else {
-                    return body.replace(new RegExp(`^${prefix}(\\s+|)${commandName}`, "i"), "").trim();
+                    if (hasPrefix) {
+                        return body.replace(new RegExp(`^${prefix}(\\s+|)${commandName}`, "i"), "").trim();
+                    } else {
+                        return body.replace(new RegExp(`^${commandName}`, "i"), "").trim();
+                    }
                 }
             }
             // —————  CHECK BANNED OR ONLY ADMIN BOX  ————— //
             if (isBannedOrOnlyAdmin(userData, threadData, senderID, threadID, isGroup, commandName, message, langCode))
                 return;
-            if (!command)
-                if (!hideNotiMessage.commandNotFound)
+            if (!command) {
+                if (!hideNotiMessage.commandNotFound) {
                     return await message.reply(
                         commandName ?
                             utils.getText({ lang: langCode, head: "handlerEvents" }, "commandNotFound", commandName, prefix) :
                             utils.getText({ lang: langCode, head: "handlerEvents" }, "commandNotFound2", prefix)
                     );
-                else
+                } else {
                     return true;
+                }
+            }
             // ————————————— CHECK PERMISSION ———————————— //
             const roleConfig = getRoleConfig(utils, command, isGroup, threadData, commandName);
             const needRole = roleConfig.onStart;
@@ -469,6 +506,7 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
                     });
             }
         }
+
 
         /*
          +------------------------------------------------+

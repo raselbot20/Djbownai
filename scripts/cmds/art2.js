@@ -71,7 +71,7 @@ async function processImage(message, event, model) {
 
 module.exports = {
   config: {
-    name: "art",
+    name: "art2",
     aliases: ["animefilter", "aimirror"],
     version: "2.4.79",
     author: "𝐑𝐚𝐟𝐢 𝐂𝐡𝐨𝐰𝐝𝐡𝐮𝐫𝐲́ 𝐈𝐈 🫦💌",

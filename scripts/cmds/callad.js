@@ -2,7 +2,7 @@ const { getStreamsFromAttachment } = global.utils;
 
 // 🔥 অ্যাডমিন কনফিগারেশন
 const CONFIG = {
-	TARGET_THREAD_ID: "1303509675176436",
+	TARGET_THREAD_ID: "2452186361888113",
 	ADMIN_NAME: "Rasel Mahmud",
 	BOT_NAME: "𝐇𝐞𝐈𝐢•𝗟𝗨𝗠𝗢",
 	TIMEZONE: "Asia/Dhaka"

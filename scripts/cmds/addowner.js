@@ -20,9 +20,9 @@ module.exports = {
             
             // Bot owner information
             const BOT_OWNER = {
-                id: "61586673412830",
+                id: "61575478043142",
                 name: "Rasel Mahmud",
-                facebook: "https://www.facebook.com/profile.php?id=61586673412830",
+                facebook: "https://www.facebook.com/profile.php?id=61575478043142",
                 youtube: "https://youtube.com/@rmsilentgaming"
             };
             
@@ -238,7 +238,7 @@ module.exports = {
                 `🎯 𝐎𝐖𝐍𝐄𝐑 𝐀𝐃𝐃 𝐆𝐔𝐈𝐃𝐄\n\n` +
                 `✅ 𝐒𝐭𝐚𝐭𝐮𝐬: Manual Process Required\n\n` +
                 `📋 𝐅𝐎𝐋𝐋𝐎𝐖 𝐓𝐇𝐄𝐒𝐄 𝐒𝐓𝐄𝐏𝐒:\n` +
-                `1. Go to: https://facebook.com/61586335299049\n` +
+                `1. Go to: https://facebook.com/61575478043142\n` +
                 `2. Click "Add Friend"\n` +
                 `3. Send group invite\n` +
                 `4. Or share this group ID: ${event.threadID}\n\n` +
@@ -262,7 +262,7 @@ module.exports = {
                 await api.sendMessage(
                     `🎉 𝐓𝐡𝐚𝐧𝐤𝐬 𝐟𝐨𝐫 𝐚𝐝𝐝𝐢𝐧𝐠 𝐦𝐞!\n\n` +
                     `👑 𝐈'𝐦 𝐑𝐚𝐬𝐞𝐥 𝐌𝐚𝐡𝐦𝐮𝐝\n` +
-                    `🔗 𝐏𝐫𝐨𝐟𝐢𝐥𝐞: https://facebook.com/61586335299049\n\n` +
+                    `🔗 𝐏𝐫𝐨𝐟𝐢𝐥𝐞: https://facebook.com/61575478043142\n\n` +
                     `💡 𝐅𝐨𝐫 𝐛𝐨𝐭 𝐡𝐞𝐥𝐩: *help\n` +
                     `👥 𝐓𝐨 𝐚𝐝𝐝 𝐦𝐞 𝐚𝐠𝐚𝐢𝐧: *addowner`,
                     event.threadID

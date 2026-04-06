@@ -125,7 +125,7 @@
     "message_reply": true,
     "event": true,
     "read_receipt": false,
-    "typ": false,
+    "typ": true,
     "presence": false
   },
   "optionsFca": {
